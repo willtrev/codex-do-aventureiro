@@ -55,14 +55,16 @@ function cardMembro(m) {
   return `<article class="card mcard" aria-labelledby="mc_${m.mid}">
     <div class="row" style="align-items:flex-start">
       <div style="flex:1;min-width:0"><h3 id="mc_${m.mid}" class="mnome">${esc(c.nome)}</h3>
-      <div class="small muted">${esc([cls(c).nome + " " + c.nivel, c.raca, c.tendencia].filter(Boolean).join(" · "))}${c.jogador ? `<br>Jogador: ${esc(c.jogador)}` : ""}</div></div>
+      <div class="small muted mlinha">${esc([cls(c).nome + " " + c.nivel, c.raca, c.tendencia].filter(Boolean).join(" · "))}</div>
+      <div class="small muted mlinha">${c.jogador ? `Jogador: ${esc(c.jogador)}` : "&nbsp;"}</div></div>
     </div>
     <div class="row" style="align-items:baseline;gap:6px"><span class="small muted" style="font-weight:600;letter-spacing:.06em">PV</span><span class="big" style="font-size:28px">${c.hp.atual}</span><span class="muted">/ ${c.hp.max}</span>
       ${c.hp.temp ? `<span class="tag">+${c.hp.temp} temp.</span>` : ""}${est ? `<span class="tag" style="color:${corPV(c)};border-color:${corPV(c)}">${esc(est)}</span>` : ""}</div>
     <div class="hpbar" role="img" aria-label="${Math.round(pct)}% dos PV"><i style="width:${pct}%;background:${corPV(c)}"></i></div>
-    <div class="stats mstats">${st("CA", a.total)}${st("Toque", a.toque)}${st("Surpresa", a.surpresa)}</div>
-    <div class="stats mstats">${st("Iniciativa", sg(iniciativa(c)))}${st("Fortitude", sg(s.fort))}${st("Reflexos", sg(s.ref))}${st("Vontade", sg(s.von))}${st("BBA", sg(bba(c)))}${st("Agarrar", sg(agarrar(c)))}${st("Desloc.", esc(c.deslocamento || "—"), ' style="font-size:16px"')}${st("Inspiração", +c.inspiracao || 0)}</div>
-    ${c.resistCond ? `<div class="small muted">${esc(c.resistCond)}</div>` : ""}
+    <div class="mstats">${st("CA", a.total)}${st("Toque", a.toque)}${st("Surpresa", a.surpresa)}${st("Iniciativa", sg(iniciativa(c)))}</div>
+    <div class="mstats">${st("Fortitude", sg(s.fort))}${st("Reflexos", sg(s.ref))}${st("Vontade", sg(s.von))}${st("BBA", sg(bba(c)))}</div>
+    <div class="mstats">${st("Agarrar", sg(agarrar(c)))}${st("Desloc.", esc(c.deslocamento || "—"), ' style="font-size:16px"')}${st("Inspiração", +c.inspiracao || 0)}</div>
+    <div class="small muted mresist" title="${esc(c.resistCond || "")}">${c.resistCond ? esc(c.resistCond) : "&nbsp;"}</div>
     <div class="mfoot"><span class="small muted">Importado em ${data}${m.origem ? " · " + esc({ pdf: "PDF", backup: "backup", local: "deste aparelho" }[m.origem] || m.origem) : ""}</span><div class="row" style="margin-top:8px">
       <button class="btn sm pri" data-a="mdetalhe" data-m="${m.mid}" aria-label="Detalhes de ${esc(c.nome)}">Detalhes</button>
       <button class="btn sm ghost" data-a="mremover" data-m="${m.mid}" aria-label="Tirar ${esc(c.nome)} da campanha">Remover</button></div></div>

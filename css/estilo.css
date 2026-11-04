@@ -789,34 +789,71 @@ tr.na td {
   text-wrap: balance;
 }
 
-/* Hub do mestre */
+/* Hub do mestre: todos os cards com o mesmo tamanho e a mesma grade interna */
 .mgrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  /* largura mínima para os rótulos (Iniciativa, Fortitude, Inspiração) caberem inteiros */
+  grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 .mcard {
   gap: 10px;
+  height: 100%;
 }
 .mnome {
   margin: 0;
   font-size: 18px;
   line-height: 1.25;
   color: var(--ink);
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+.mlinha {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Três linhas de quatro caixas iguais: defesa + iniciativa, testes + BBA, agarrar, deslocamento e inspiração */
 .mstats {
-  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
+}
+.mstats .stat {
+  padding: 6px 8px;
+  min-width: 0;
 }
 .mstats .stat b {
   font-size: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mstats .stat span {
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Resistências especiais: sempre duas linhas reservadas, para os cards ficarem alinhados */
+.mresist {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(2 * 1.45em);
+  line-height: 1.45;
 }
 .mfoot {
   border-top: 1px solid var(--line);
   padding-top: 10px;
-  margin-top: 2px;
+  margin-top: auto;
+}
+.mfoot .btn {
+  flex: 1;
 }
 .mtab {
   width: 100%;
@@ -835,13 +872,9 @@ tr.na td {
   letter-spacing: 0.06em;
   color: var(--muted);
 }
-.mstats .stat {
-  padding: 6px 8px;
-}
-.mstats .stat span {
-  font-size: 10px;
-  letter-spacing: 0.03em;
-}
-.mfoot .btn {
-  flex: 1;
+@media (max-width: 420px) {
+  .mstats .stat span {
+    font-size: 9.5px;
+    letter-spacing: 0;
+  }
 }
