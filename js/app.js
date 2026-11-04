@@ -6,11 +6,13 @@
     state = local;
     if (!state.chars[state.active]) state.active = Object.keys(state.chars)[0];
   } else {
-    const v = volis(1);
-    state = { chars: { [v.id]: v }, active: v.id, mig: 4 };
-    saveLocal();
+    // Primeiro acesso: começa sem personagens e mostra a tela inicial.
+    state = { chars: {}, active: null, mig: MIG_ATUAL };
   }
   migrate();
   render();
-  initCloud();
+  initCloud().finally(() => {
+    nuvemPendente = false;
+    render();
+  });
 })();

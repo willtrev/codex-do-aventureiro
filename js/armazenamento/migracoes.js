@@ -35,6 +35,8 @@ function syncCat(c) {
   }
   return ch;
 }
+/** Versão mais recente das migrações abaixo. Suba ao criar uma nova. */
+const MIG_ATUAL = 6;
 function migrate() {
   for (const c of Object.values(state.chars)) {
     let ch = syncCat(c);

@@ -365,6 +365,17 @@ document.addEventListener("click", async (e) => {
       setStatus("Cópia criada: escolha no seletor de personagem", "pend");
       break;
     }
+    case "loadexamples": {
+      const v = volis(1);
+      for (const n of [v, ...testChars()]) {
+        state.chars[n.id] = n;
+        touch(n.id);
+      }
+      state.active = v.id;
+      touch("__meta");
+      render();
+      break;
+    }
     case "loadvolis": {
       const n = volis(1);
       state.chars[n.id] = n;
@@ -381,12 +392,8 @@ document.addEventListener("click", async (e) => {
       const id = c.id;
       delete state.chars[id];
       touch(id);
-      if (!Object.keys(state.chars).length) {
-        const n = volis(1);
-        state.chars[n.id] = n;
-        touch(n.id);
-      }
-      state.active = Object.keys(state.chars)[0];
+      // Sem personagens, volta para a tela inicial.
+      state.active = Object.keys(state.chars)[0] || null;
       touch("__meta");
       closeModal();
       render();

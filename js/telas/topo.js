@@ -2,7 +2,7 @@
 function render() {
   const c = cur();
   if (!c) {
-    document.getElementById("main").innerHTML = "";
+    document.getElementById("main").innerHTML = vInicio();
     return;
   }
   ensurePrep(c);
