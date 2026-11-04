@@ -11,40 +11,60 @@
 
 /* ---------- Leitura do PDF ---------- */
 
+/** Campos do personagem que, se vazios, indicam que nada foi lido. */
+const CAMPOS_ESSENCIAIS = [7, 8, 9, 13, 15, 17, 19, 21, 23, 47];
+const temDados = (F) =>
+  CAMPOS_ESSENCIAIS.some((n) => String(F["untitled" + n] ?? "").trim()) || (F.__magias || []).length;
+
+/**
+ * Lê qualquer PDF com texto e devolve os campos no formato da ficha oficial.
+ * F.__origem diz como foi lido: "campos" (ficha editável), "posicao" (ficha oficial achatada)
+ * ou "texto" (outro PDF, lido pelos rótulos).
+ */
 async function lerPdfFicha(bytes) {
   const PDFLib = await loadPdfLib();
   let pdf;
   try {
-    pdf = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+    pdf = await PDFLib.PDFDocument.load(bytes.slice(0), { ignoreEncryption: true });
   } catch (e) {
-    throw new Error("Não foi possível abrir o arquivo. Confira se é um PDF válido.");
+    throw new Error("Não foi possível abrir o arquivo. Confira se é um PDF válido e se não está protegido por senha.");
   }
-  let campos = [];
+  // 1. Formulário da ficha oficial
+  const form = {};
   try {
-    campos = pdf.getForm().getFields();
+    for (const f of pdf.getForm().getFields()) {
+      const n = f.getName();
+      try {
+        if (typeof f.getText === "function") form[n] = f.getText() || "";
+        else if (typeof f.isChecked === "function") form[n] = f.isChecked();
+        else if (typeof f.getSelected === "function") form[n] = (f.getSelected() || []).join(", ");
+      } catch (e) {}
+    }
   } catch (e) {}
-  if (!campos.length)
-    throw new Error(
-      "Este PDF não tem campos editáveis. Pode ser uma ficha impressa e escaneada, ou um PDF “achatado” ao salvar. Use a ficha editável preenchida."
-    );
-  const F = {};
-  for (const f of campos) {
-    const n = f.getName();
-    try {
-      if (typeof f.getText === "function") F[n] = f.getText() || "";
-      else if (typeof f.isChecked === "function") F[n] = f.isChecked();
-      else if (typeof f.getSelected === "function") F[n] = (f.getSelected() || []).join(", ");
-    } catch (e) {}
+  const oficial = Object.keys(form).filter((k) => /^untitled\d+$/.test(k)).length >= 300;
+  if (oficial && temDados(form)) return { ...form, __origem: "campos" };
+
+  // 2. Texto do PDF (ficha achatada, outra ficha ou documento)
+  let txt;
+  try {
+    txt = await extrairTextoPdf(bytes);
+  } catch (e) {
+    if (e && e.message === "lib") throw e;
+    throw new Error("Não foi possível ler o texto deste PDF.");
   }
-  const daFicha = Object.keys(F).filter((k) => /^untitled\d+$/.test(k)).length;
-  if (daFicha < 300)
+  const outroForm = oficial ? [] : linhasDeOutroFormulario(form);
+  if (!txt.itens.length && !outroForm.length)
     throw new Error(
-      "Este PDF não parece ser a ficha de personagem de 4 páginas do D&D 3.5: os campos do formulário não batem com o modelo."
+      "Não encontramos texto neste PDF: ele parece ser só imagem, como uma foto ou digitalização da ficha. Use um PDF com texto (a ficha editável, ou um PDF gerado por um programa) ou crie o personagem à mão."
     );
-  const preenchidos = [7, 8, 9, 13, 15, 17, 19, 21, 23].filter((n) => F["untitled" + n]);
-  if (!preenchidos.length)
-    throw new Error("A ficha está em branco: não há nome, classe, raça nem atributos preenchidos.");
-  return F;
+  const pos = camposPorPosicao(txt);
+  if (pos && temDados(pos)) return { ...pos, __origem: "posicao" };
+  const livre = camposDeTextoLivre([...outroForm, ...linhasDoTexto(txt.itens)]);
+  if (!temDados(livre))
+    throw new Error(
+      "Lemos o PDF, mas não encontramos dados de personagem: nenhum nome, classe, raça, atributo, PV ou lista de magias. Se for uma ficha, confira se os valores estão escritos como texto (por exemplo “Classe: Mago 3”, “For 16”)."
+    );
+  return { ...livre, __origem: "texto" };
 }
 
 /* ---------- Conversões de texto ---------- */
@@ -168,6 +188,15 @@ function escolaDoTexto(t) {
   return en ? TR_ESCOLAS[en] : "";
 }
 function dominioDoTexto(t) {
+  // Tenta o texto inteiro e depois só as primeiras palavras ("Proteção Fort +6" → "Proteção")
+  const ps = normTxt(t).split(" ");
+  for (let i = ps.length; i >= 1; i--) {
+    const d = dominioExato(ps.slice(0, i).join(" "));
+    if (d) return d;
+  }
+  return "";
+}
+function dominioExato(t) {
   const n = normTxt(t);
   const pt = Object.keys(DOMAINS).find((d) => normTxt(d) === n);
   if (pt) return pt;
@@ -203,6 +232,22 @@ function montarDoPdf(F, escolha) {
   const resumo = [];
   const c = blankChar();
   c.idiomas = "";
+  if (F.__origem === "posicao")
+    avisos.push({
+      titulo: "Ficha sem campos editáveis",
+      texto:
+        "Este PDF é a ficha oficial, mas sem o formulário (foi impressa ou salva como PDF comum). Lemos cada valor pela posição na página. Confira com atenção, principalmente textos longos.",
+    });
+  if (F.__origem === "texto") {
+    const ROT = { 7: "nome", 8: "classe", 9: "raça", 2: "tendência", 13: "atributos", 47: "PV" };
+    const faltam = Object.entries(ROT)
+      .filter(([n]) => !String(F["untitled" + n] ?? "").trim())
+      .map(([, r]) => r);
+    avisos.push({
+      titulo: "Outro modelo de ficha",
+      texto: `Este PDF não é a ficha oficial de 4 páginas, então lemos o texto procurando rótulos como “Nome:”, “Classe:”, “For 16”, “PV 18” e listas de magias, talentos e equipamento.${faltam.length ? ` Não achamos: ${listaPt(faltam)}.` : ""} Perícias, armas e magias preparadas não são lidas deste formato. Confira tudo antes de jogar.`,
+    });
+  }
 
   // Identidade e classe
   const classes = classeDoTexto(v(8));
@@ -444,6 +489,26 @@ function montarDoPdf(F, escolha) {
   }
   if (c.talentos.length) resumo.push(`${c.talentos.length} talento${c.talentos.length > 1 ? "s" : ""}`);
 
+  // Listas lidas de texto livre (outro modelo de ficha)
+  for (const nome of F.__talentos || []) {
+    if (c.talentos.some((t) => normTxt(t.nome) === normTxt(nome))) continue;
+    const srd = talentoDoNome(nome);
+    c.talentos.push({
+      nome: srd ? (idioma === "en" ? srd.en : srd.nome) : nome,
+      en: srd ? srd.en : "",
+      obs: srd ? srd.srd.beneficio || "" : "",
+    });
+  }
+  for (const t of F.__itens || []) {
+    const m = t.match(/^(\d+)\s*x?\s+(.+)$/i) || t.match(/^(.+?)\s*(?:\(|x)\s*(\d+)\)?$/i);
+    const [nome, qtd] = m ? (/^\d/.test(m[1]) ? [m[2], +m[1]] : [m[1], +m[2]]) : [t, 1];
+    c.itens.push({ nome: nome.trim(), qtd, peso: 0, local: "" });
+  }
+  if (F.__origem === "texto") {
+    if (c.talentos.length) resumo.push(`${c.talentos.length} talento${c.talentos.length > 1 ? "s" : ""}`);
+    if (c.itens.length) resumo.push(`${c.itens.length} ite${c.itens.length > 1 ? "ns" : "m"} (sem peso)`);
+  }
+
   // Escola, domínios e escolas proibidas
   const esp = v(566);
   if (c.classeKey === "mago" && esp) {
@@ -508,6 +573,22 @@ function montarDoPdf(F, escolha) {
     } else notasExtras.push(ln);
   }
   const semSRD = [];
+  const naoReconhecidas = [];
+  for (const { nome, nivel } of F.__magias || []) {
+    const k = magiaDoNome(nome);
+    if (!k) {
+      if (nome.split(" ").length <= 6) naoReconhecidas.push(nome);
+      continue;
+    }
+    const lista = c.classeKey && CLASSES[c.classeKey].magia ? CLASSES[c.classeKey].magia.lista : null;
+    const l = nivel ?? (lista && k.listas[lista] !== undefined ? k.listas[lista] : k.nivel);
+    (conhecidas[l] = conhecidas[l] || []).push(k.nome);
+  }
+  if (naoReconhecidas.length)
+    avisos.push({
+      titulo: "Magias não reconhecidas",
+      texto: `Na lista de magias, não reconhecemos ${listaPt(naoReconhecidas.slice(0, 12).map((x) => "“" + x + "”"))}${naoReconhecidas.length > 12 ? ` e mais ${naoReconhecidas.length - 12}` : ""}. Se forem magias, adicione pela aba Magias.`,
+    });
   let nMag = 0;
   for (const [l, ns] of Object.entries(conhecidas))
     for (const nome of ns) {
@@ -606,12 +687,32 @@ function montarDoPdf(F, escolha) {
       const x = numPdf(pdf);
       if (!isNaN(x) && x !== aqui) difs.push(`${rotulo}: ${fmt ? sg(x) : x} no PDF, ${fmt ? sg(aqui) : aqui} aqui`);
     };
-    cmp("CA", v(44), a.total);
-    cmp("CA de toque", v(45), a.toque);
-    cmp("CA surpresa", v(46), a.surpresa);
-    cmp("Fortitude", v(54), sv.fort, true);
-    cmp("Reflexos", v(55), sv.ref, true);
-    cmp("Vontade", v(56), sv.von, true);
+    // Em outro modelo de ficha não sabemos de onde vêm os bônus: ajustamos "Outros" para bater com o PDF
+    if (F.__origem === "texto") {
+      const ajustes = [];
+      const ajusta = (rotulo, pdf, aqui, aplicar) => {
+        const x = numPdf(pdf);
+        if (isNaN(x) || x === aqui) return;
+        aplicar(x - aqui);
+        ajustes.push(`${rotulo} ${x}`);
+      };
+      ajusta("CA", v(44), a.total, (d) => (c.ca.outros += d));
+      ajusta("Fortitude", v(54), sv.fort, (d) => (c.outros.fort += d));
+      ajusta("Reflexos", v(55), sv.ref, (d) => (c.outros.ref += d));
+      ajusta("Vontade", v(56), sv.von, (d) => (c.outros.von += d));
+      ajusta("Iniciativa", v(51), mod(at(c, "des")) + c.outros.init, (d) => (c.outros.init += d));
+      if (ajustes.length)
+        avisos.push({
+          titulo: "Bônus sem origem",
+          texto: `Para ficar igual ao PDF (${listaPt(ajustes)}), colocamos a diferença em “Outros” na aba Ficha. Se souber de onde vem (armadura, escudo, item mágico), mova para o campo certo.`,
+        });
+    }
+    cmp("CA", v(44), ac(c).total);
+    cmp("CA de toque", v(45), ac(c).toque);
+    cmp("CA surpresa", v(46), ac(c).surpresa);
+    cmp("Fortitude", v(54), saves(c).fort, true);
+    cmp("Reflexos", v(55), saves(c).ref, true);
+    cmp("Vontade", v(56), saves(c).von, true);
     cmp("BBA", v(75).split("/")[0], bba(c), true);
     cmp("Iniciativa", v(51), mod(at(c, "des")) + c.outros.init, true);
     const sp = skillPts(c);
@@ -638,7 +739,7 @@ let importacaoPdf = null; // { F, nomeArquivo, escolha }
 
 function importPdfModal() {
   modal(`<div class="row"><h2 style="font-size:18px;color:var(--ink)">Importar ficha em PDF</h2><span class="spacer"></span><button class="btn sm ghost" data-a="close">Fechar</button></div>
-  <p style="margin:0;line-height:1.5">Escolha a ficha editável de 4 páginas do D&amp;D 3.5 já preenchida, inclusive uma exportada pelo Códex. Lemos os campos, montamos o personagem e mostramos o que não deu para trazer antes de salvar.</p>
+  <p style="margin:0;line-height:1.5">Escolha um PDF com a ficha do personagem. Funciona melhor com a ficha oficial de 4 páginas do D&amp;D 3.5 (editável ou não, inclusive uma exportada pelo Códex), mas também lemos outros modelos de ficha, desde que o PDF tenha texto. Antes de salvar, mostramos o que não deu para trazer.</p>
   <div class="row"><label class="btn pri" for="pdfimport">Escolher PDF</label><input type="file" id="pdfimport" accept="application/pdf,.pdf" data-a="pdfimport" style="position:absolute;left:-9999px"><span id="pdfimpmsg" class="small muted" role="status"></span></div>`);
 }
 async function lerArquivoImportacao(file) {

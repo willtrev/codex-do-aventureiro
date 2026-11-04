@@ -17,7 +17,12 @@ Ficha de personagem interativa para **D&D 3.5**. Faz os cálculos da ficha e aco
   - Descanso de 8 horas.
 - **Clérigos:** escolha de 2 domínios entre os 22 do SRD, com as magias e os poderes concedidos.
 - **Tendência:** restrições por classe (paladino, monge, bárbaro, bardo, druida).
-- **Exportar e importar PDF:** preenche a ficha oficial editável de 4 páginas e também lê uma ficha já preenchida (exportada pelo Códex ou à mão) para criar o personagem. Antes de salvar, mostra o que não deu para importar: multiclasse, magias fora do SRD, perícias sem equivalente, valores calculados diferentes da ficha.
+- **Exportar e importar PDF:** preenche a ficha oficial editável de 4 páginas. Para importar, aceita qualquer PDF que tenha texto:
+  - a ficha oficial editável, inclusive uma exportada pelo Códex;
+  - a ficha oficial sem formulário (impressa ou salva como PDF comum), lida pela posição de cada valor na página;
+  - outros modelos de ficha e documentos, lidos pelos rótulos ("Nome:", "Classe: Mago 3", "For 16", "PV 18") e pelas listas de magias, talentos e equipamento.
+
+  Antes de salvar, mostra o que não deu para importar: multiclasse, magias fora do SRD, perícias sem equivalente, valores calculados diferentes da ficha. PDFs só com imagem (foto ou digitalização) não têm texto para ler.
 - **Idioma do conteúdo:** **PT + EN** (padrão), **PT** ou **EN**. Os rótulos da interface continuam em português.
 - **Tema:** claro, escuro ou automático, no estilo Flat Design.
 - **Tela inicial:** o primeiro acesso começa sem personagens. Dá para criar um, importar uma ficha em PDF ou um backup, ou carregar os exemplos (Volis e um personagem de teste de nível 1 por classe).
@@ -69,6 +74,7 @@ js/
   util.js                  funções pequenas (mod, sg, esc, clone…)
   dados/
     srd-*.js               dados do SRD gerados automaticamente (não edite à mão)
+    ficha-campos.js        posição de cada campo da ficha oficial, para ler fichas sem formulário
     traducoes.js           nomes em português: escolas, classes, domínios, talentos, equipamento
     traducoes-magias.js    nome, alvo e resumo em português de cada magia
     catalogo.js            junta SRD + tradução no catálogo de magias (CAT)
@@ -94,7 +100,8 @@ js/
   telas/                   uma função por aba (painel, magias, perícias, ficha, inventário, notas)
                            e a tela inicial (inicio.js), mostrada quando não há personagens
   pdf/exportar.js          preenche a ficha em PDF
-  pdf/importar.js          lê uma ficha em PDF e monta o personagem
+  pdf/importar.js          monta o personagem a partir de uma ficha em PDF
+  pdf/ler-texto.js         lê PDFs sem o formulário oficial (pela posição ou pelos rótulos)
   app.js                   inicialização
 tools/gerar_dados.py       gera js/dados/srd-*.js a partir do banco do SRD
 ```
