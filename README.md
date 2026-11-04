@@ -17,10 +17,10 @@ Ficha de personagem interativa para **D&D 3.5**. Faz os cálculos da ficha e aco
   - Descanso de 8 horas.
 - **Clérigos:** escolha de 2 domínios entre os 22 do SRD, com as magias e os poderes concedidos.
 - **Tendência:** restrições por classe (paladino, monge, bárbaro, bardo, druida).
-- **Exportar para PDF:** preenche a ficha oficial editável de 4 páginas.
+- **Exportar e importar PDF:** preenche a ficha oficial editável de 4 páginas e também lê uma ficha já preenchida (exportada pelo Códex ou à mão) para criar o personagem. Antes de salvar, mostra o que não deu para importar: multiclasse, magias fora do SRD, perícias sem equivalente, valores calculados diferentes da ficha.
 - **Idioma do conteúdo:** **PT + EN** (padrão), **PT** ou **EN**. Os rótulos da interface continuam em português.
 - **Tema:** claro, escuro ou automático, no estilo Flat Design.
-- **Tela inicial:** o primeiro acesso começa sem personagens. Dá para criar um, importar um backup ou carregar os exemplos (Volis e um personagem de teste de nível 1 por classe).
+- **Tela inicial:** o primeiro acesso começa sem personagens. Dá para criar um, importar uma ficha em PDF ou um backup, ou carregar os exemplos (Volis e um personagem de teste de nível 1 por classe).
 
 ## Como usar
 
@@ -94,6 +94,7 @@ js/
   telas/                   uma função por aba (painel, magias, perícias, ficha, inventário, notas)
                            e a tela inicial (inicio.js), mostrada quando não há personagens
   pdf/exportar.js          preenche a ficha em PDF
+  pdf/importar.js          lê uma ficha em PDF e monta o personagem
   app.js                   inicialização
 tools/gerar_dados.py       gera js/dados/srd-*.js a partir do banco do SRD
 ```

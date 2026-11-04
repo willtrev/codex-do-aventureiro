@@ -32,7 +32,9 @@ function vInicio() {
   </section>
   <section class="card c6">
     <h2>Já tem um personagem?</h2>
-    <p class="small muted" style="margin:0">Cole aqui o texto copiado em <b>Notas e backup → Copiar backup</b>.</p>
+    <p class="small muted" style="margin:0">Traga a ficha editável em PDF (o modelo oficial de 4 páginas) já preenchida.</p>
+    <div class="row"><button class="btn pri" data-a="importpdf">Importar ficha em PDF</button></div>
+    <p class="small muted" style="margin:0">Ou cole o texto copiado em <b>Notas e backup → Copiar backup</b>.</p>
     <label class="f" for="impbox">Backup<textarea id="impbox" placeholder='{"nome": ...}' style="min-height:110px"></textarea></label>
     <div class="row"><button class="btn" data-a="import">Importar</button><span id="impmsg" class="small muted" role="status"></span></div>
   </section>

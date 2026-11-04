@@ -33,6 +33,6 @@ function vNotas(c) {
     <label class="f" for="impbox">Colar backup<textarea id="impbox" placeholder='{"nome": ...}'></textarea></label>
     <div class="row"><button class="btn" data-a="import">Importar</button><span id="impmsg" class="small muted"></span></div>
     <h2>Personagens</h2>
-    <div class="row"><button class="btn" data-a="loadvolis">Criar Volis (exemplo)</button><button class="btn danger" data-a="delchar">Excluir ${esc(c.nome)}</button></div>
+    <div class="row"><button class="btn" data-a="importpdf">Importar ficha em PDF</button><button class="btn" data-a="loadvolis">Criar Volis (exemplo)</button><button class="btn danger" data-a="delchar">Excluir ${esc(c.nome)}</button></div>
   </section></div>`;
 }

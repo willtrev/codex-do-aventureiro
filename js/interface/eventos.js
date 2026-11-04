@@ -56,6 +56,20 @@ document.addEventListener("change", (e) => {
     render();
     return;
   }
+  if (el.dataset.a === "pdfimport" && el.files && el.files[0]) {
+    lerArquivoImportacao(el.files[0]);
+    return;
+  }
+  if (el.dataset.a === "impcls" && importacaoPdf) {
+    importacaoPdf.escolha.classeKey = el.value;
+    revisaoImportacao();
+    return;
+  }
+  if (el.dataset.a === "impnivel" && importacaoPdf) {
+    importacaoPdf.escolha.nivel = clamp(+el.value || 1, 1, 20);
+    revisaoImportacao();
+    return;
+  }
   if (el.dataset.a === "sheetfile" && el.files && el.files[0]) {
     el.files[0].arrayBuffer().then((b) => {
       SHEET_BYTES = b;
@@ -365,6 +379,12 @@ document.addEventListener("click", async (e) => {
       setStatus("Cópia criada: escolha no seletor de personagem", "pend");
       break;
     }
+    case "importpdf":
+      importPdfModal();
+      break;
+    case "impconfirmar":
+      confirmarImportacao();
+      break;
     case "loadexamples": {
       const v = volis(1);
       for (const n of [v, ...testChars()]) {
