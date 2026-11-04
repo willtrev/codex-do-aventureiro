@@ -44,6 +44,11 @@ function vInicio() {
     <div class="row"><button class="btn" data-a="loadexamples">Carregar exemplos</button></div>
   </section>
   <section class="card c12">
+    <div class="row"><div style="flex:1;min-width:240px"><h2>É o mestre?</h2>
+    <p class="small muted" style="margin:6px 0 0">Crie uma campanha e veja as fichas do grupo em cards, com PV, CA e os números de combate.</p></div>
+    <a class="btn" href="#mestre">Abrir o hub do mestre</a></div>
+  </section>
+  <section class="card c12">
     <h2>Onde ficam seus dados</h2>
     <p class="small" style="margin:0;line-height:1.55">${
       storeMode === "cloud"

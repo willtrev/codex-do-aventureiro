@@ -8,13 +8,18 @@ const TABS = [
   ["notas", "Notas e backup"],
 ];
 let tab = "painel";
+/** "fichas": abas do personagem; "mestre": hub da campanha (#mestre). */
+let modo = "fichas";
 function readHash() {
   const h = location.hash.replace("#", "");
+  modo = h === "mestre" ? "mestre" : "fichas";
+  if (modo === "mestre") return;
   tab = TABS.some((t) => t[0] === h) ? h : "painel";
 }
 /** Troca de aba (atualiza o endereço sem criar entrada nova no histórico). */
 function irPara(t) {
   tab = t;
+  modo = "fichas";
   history.replaceState(null, "", "#" + t);
 }
 const cur = () => state.chars[state.active];

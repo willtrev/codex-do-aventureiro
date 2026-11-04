@@ -1,5 +1,7 @@
 /* ================= Armazenamento ================= */
-let state = { chars: {}, active: null };
+/* state.chars: personagens deste usuário. state.campanhas: campanhas do hub do mestre,
+   cada uma com cópias das fichas dos jogadores (ver js/telas/mestre.js). */
+let state = { chars: {}, active: null, campanhas: {}, campanhaAtiva: null };
 let db = null,
   uid = null,
   storeMode = "local",
@@ -14,7 +16,10 @@ function saveLocal() {
 function loadLocal() {
   try {
     const s = JSON.parse(localStorage.getItem(LSKEY) || "null");
-    if (s && s.chars) return s;
+    if (s && s.chars) {
+      s.campanhas = s.campanhas || {};
+      return s;
+    }
   } catch (e) {}
   return null;
 }
@@ -47,8 +52,18 @@ async function flush() {
       if (id === "__meta")
         await col()
           .doc("meta")
-          .set({ active: state.active || "", mig: state.mig || 0 });
-      else if (state.chars[id])
+          .set({ active: state.active || "", mig: state.mig || 0, campanhaAtiva: state.campanhaAtiva || "" });
+      else if (id.startsWith("g:")) {
+        const g = id.slice(2);
+        if (state.campanhas[g])
+          await col()
+            .doc("g_" + g)
+            .set(clone(state.campanhas[g]));
+        else
+          await col()
+            .doc("g_" + g)
+            .delete();
+      } else if (state.chars[id])
         await col()
           .doc("c_" + id)
           .set(clone(state.chars[id]));
@@ -110,25 +125,36 @@ async function initCloud() {
   try {
     const snap = await col().get();
     clearTimeout(t);
-    const chars = {};
+    const chars = {},
+      campanhas = {};
     let active = null,
+      campanhaAtiva = null,
       mig = 0;
     for (const doc of snap.docs) {
       const v = doc.data();
       if (doc.id === "meta") {
         active = v.active;
         mig = v.mig || 0;
+        campanhaAtiva = v.campanhaAtiva || null;
       } else if (doc.id.startsWith("c_") && v && v.id) chars[v.id] = clone(v);
+      else if (doc.id.startsWith("g_") && v && v.id) campanhas[v.id] = clone(v);
     }
     storeMode = "cloud";
-    if (Object.keys(chars).length) {
-      state = { chars, active: chars[active] ? active : Object.keys(chars)[0], mig };
+    if (Object.keys(chars).length || Object.keys(campanhas).length) {
+      state = {
+        chars,
+        active: chars[active] ? active : Object.keys(chars)[0] || null,
+        mig,
+        campanhas,
+        campanhaAtiva: campanhas[campanhaAtiva] ? campanhaAtiva : Object.keys(campanhas)[0] || null,
+      };
       migrate();
       saveLocal();
       if (!dirty.size) setStatus("Salvo na sua conta", "ok");
       render();
     } else {
       Object.keys(state.chars).forEach((k) => dirty.add(k));
+      Object.keys(state.campanhas || {}).forEach((k) => dirty.add("g:" + k));
       dirty.add("__meta");
       setStatus("Salvando…", "pend");
       flush();

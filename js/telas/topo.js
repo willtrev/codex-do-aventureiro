@@ -1,5 +1,9 @@
 /* ================= Render ================= */
 function render() {
+  if (modo === "mestre") {
+    document.getElementById("main").innerHTML = vMestre();
+    return;
+  }
   const c = cur();
   if (!c) {
     document.getElementById("main").innerHTML = vInicio();
@@ -19,6 +23,7 @@ function render() {
      <button class="btn sm" data-a="newchar">Novo</button>
      <button class="btn sm" data-a="dupchar" title="Cria uma cópia, útil para guardar o nível anterior">Duplicar</button>
      <button class="btn sm pri" data-a="exportpdf">Exportar PDF</button>
+     <a class="btn sm" href="#mestre">Hub do mestre</a>
    </div>
    <div class="row"><span class="status" id="st">${statusHTML()}</span><span class="spacer"></span>
      <span class="theme" role="group" aria-label="Idioma do conteúdo" title="Idioma de magias, talentos, equipamento e domínios">${IDIOMAS.map(

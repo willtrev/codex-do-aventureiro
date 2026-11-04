@@ -788,3 +788,60 @@ tr.na td {
   color: var(--ink);
   text-wrap: balance;
 }
+
+/* Hub do mestre */
+.mgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.mcard {
+  gap: 10px;
+}
+.mnome {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.mstats {
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 6px;
+}
+.mstats .stat b {
+  font-size: 20px;
+}
+.mfoot {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  margin-top: 2px;
+}
+.mtab {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.mtab th,
+.mtab td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.mtab th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.mstats .stat {
+  padding: 6px 8px;
+}
+.mstats .stat span {
+  font-size: 10px;
+  letter-spacing: 0.03em;
+}
+.mfoot .btn {
+  flex: 1;
+}

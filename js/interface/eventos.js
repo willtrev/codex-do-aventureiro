@@ -56,6 +56,27 @@ document.addEventListener("change", (e) => {
     render();
     return;
   }
+  if (el.dataset.a === "campsel") {
+    state.campanhaAtiva = el.value;
+    touch("__meta");
+    render();
+    return;
+  }
+  if (el.dataset.a === "campord" && campanha()) {
+    campanha().ordem = el.value;
+    salvarCampanha(campanha());
+    render();
+    return;
+  }
+  if (el.dataset.a === "campren" && campanha()) {
+    const n = el.value.trim();
+    if (n) {
+      campanha().nome = n;
+      salvarCampanha(campanha());
+      topoMestre();
+    }
+    return;
+  }
   if (el.dataset.a === "pdfimport" && el.files && el.files[0]) {
     lerArquivoImportacao(el.files[0]);
     return;
@@ -382,6 +403,94 @@ document.addEventListener("click", async (e) => {
     case "importpdf":
       importPdfModal();
       break;
+    /* ----- Hub do mestre ----- */
+    case "campcriar":
+    case "campnova": {
+      if (a === "campnova") {
+        state.campanhaAtiva = null;
+        render();
+        break;
+      }
+      const nome = (document.getElementById("camp_nome") || {}).value || "";
+      if (!nome.trim()) {
+        document.getElementById("camp_msg").textContent = "Dê um nome à campanha.";
+        break;
+      }
+      const g = { id: uidGen(), nome: nome.trim(), criada: new Date().toISOString(), ordem: "chegada", membros: [] };
+      state.campanhas[g.id] = g;
+      state.campanhaAtiva = g.id;
+      salvarCampanha(g);
+      render();
+      break;
+    }
+    case "campvoltar":
+      state.campanhaAtiva = Object.keys(state.campanhas)[0] || null;
+      render();
+      break;
+    case "campexcluir":
+      confirmModal(
+        `Excluir a campanha “${campanha().nome}” e os ${campanha().membros.length} cards dela? As fichas dos jogadores não são afetadas.`,
+        "campexcluirok"
+      );
+      break;
+    case "campexcluirok": {
+      const id = state.campanhaAtiva;
+      delete state.campanhas[id];
+      touch("g:" + id);
+      state.campanhaAtiva = Object.keys(state.campanhas)[0] || null;
+      touch("__meta");
+      closeModal();
+      render();
+      break;
+    }
+    case "mimportpdf":
+      importPdfModal("campanha");
+      break;
+    case "mbackup":
+      backupModal();
+      break;
+    case "mbackupok": {
+      const msg = document.getElementById("mbkmsg");
+      try {
+        const o = JSON.parse(document.getElementById("mbk").value);
+        if (!o || typeof o !== "object" || !o.attr) throw 0;
+        const r = adicionarNaCampanha(o, "backup");
+        msg.style.color = "var(--good)";
+        msg.textContent = `${o.nome || "Personagem"} ${r === "atualizado" ? "atualizado" : "adicionado"}. Cole outro backup ou feche.`;
+        document.getElementById("mbk").value = "";
+        render();
+      } catch (err) {
+        msg.style.color = "var(--bad)";
+        msg.textContent = "Esse texto não é um backup válido do Códex.";
+      }
+      break;
+    }
+    case "mlocais":
+      locaisModal();
+      break;
+    case "mlocaisok": {
+      document.querySelectorAll(".mloc:checked").forEach((x) => adicionarNaCampanha(state.chars[x.value], "local"));
+      closeModal();
+      render();
+      break;
+    }
+    case "mdetalhe":
+      detalheMembro(b.dataset.m);
+      break;
+    case "mremover": {
+      const m = campanha().membros.find((x) => x.mid === b.dataset.m);
+      if (m) confirmModal(`Tirar ${m.c.nome} da campanha? A ficha do jogador não é afetada.`, "mremoverok");
+      membroARemover = b.dataset.m;
+      break;
+    }
+    case "mremoverok": {
+      const g = campanha();
+      g.membros = g.membros.filter((x) => x.mid !== membroARemover);
+      salvarCampanha(g);
+      closeModal();
+      render();
+      break;
+    }
     case "impconfirmar":
       confirmarImportacao();
       break;

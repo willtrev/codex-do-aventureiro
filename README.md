@@ -25,6 +25,7 @@ Ficha de personagem interativa para **D&D 3.5**. Faz os cálculos da ficha e aco
   Antes de salvar, mostra o que não deu para importar: multiclasse, magias fora do SRD, perícias sem equivalente, valores calculados diferentes da ficha. PDFs só com imagem (foto ou digitalização) não têm texto para ler.
 - **Idioma do conteúdo:** **PT + EN** (padrão), **PT** ou **EN**. Os rótulos da interface continuam em português.
 - **Tema:** claro, escuro ou automático, no estilo Flat Design.
+- **Hub do mestre** (`#mestre`): o mestre cria e nomeia campanhas e traz as fichas dos jogadores (PDF, texto de backup ou fichas do próprio aparelho). Cada personagem vira um card com PV, CA, toque, surpresa, iniciativa, testes de resistência, BBA, agarrar, deslocamento e inspiração, com ordenação por nome, iniciativa, PV ou CA. **Detalhes** abre atributos, armas, magias de hoje, habilidades, perícias e talentos. Os cards são cópias: importar de novo uma ficha com o mesmo nome atualiza o card.
 - **Tela inicial:** o primeiro acesso começa sem personagens. Dá para criar um, importar uma ficha em PDF ou um backup, ou carregar os exemplos (Volis e um personagem de teste de nível 1 por classe).
 
 ## Como usar
@@ -98,7 +99,8 @@ js/
     srd-escolha.js         janelas de talentos e equipamento do SRD
     eventos.js             cliques e campos
   telas/                   uma função por aba (painel, magias, perícias, ficha, inventário, notas)
-                           e a tela inicial (inicio.js), mostrada quando não há personagens
+                           a tela inicial (inicio.js), mostrada quando não há personagens,
+                           e o hub do mestre (mestre.js)
   pdf/exportar.js          preenche a ficha em PDF
   pdf/importar.js          monta o personagem a partir de uma ficha em PDF
   pdf/ler-texto.js         lê PDFs sem o formulário oficial (pela posição ou pelos rótulos)

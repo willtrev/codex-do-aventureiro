@@ -735,9 +735,11 @@ function montarDoPdf(F, escolha) {
 
 /* ---------- Janela de importação ---------- */
 
-let importacaoPdf = null; // { F, nomeArquivo, escolha }
+let importacaoPdf = null; // { F, nomeArquivo, escolha, destino }
+let destinoImportacao = "fichas"; // "fichas" (novo personagem) ou "campanha" (hub do mestre)
 
-function importPdfModal() {
+function importPdfModal(destino) {
+  destinoImportacao = destino || "fichas";
   modal(`<div class="row"><h2 style="font-size:18px;color:var(--ink)">Importar ficha em PDF</h2><span class="spacer"></span><button class="btn sm ghost" data-a="close">Fechar</button></div>
   <p style="margin:0;line-height:1.5">Escolha um PDF com a ficha do personagem. Funciona melhor com a ficha oficial de 4 páginas do D&amp;D 3.5 (editável ou não, inclusive uma exportada pelo Códex), mas também lemos outros modelos de ficha, desde que o PDF tenha texto. Antes de salvar, mostramos o que não deu para trazer.</p>
   <div class="row"><label class="btn pri" for="pdfimport">Escolher PDF</label><input type="file" id="pdfimport" accept="application/pdf,.pdf" data-a="pdfimport" style="position:absolute;left:-9999px"><span id="pdfimpmsg" class="small muted" role="status"></span></div>`);
@@ -747,7 +749,7 @@ async function lerArquivoImportacao(file) {
   if (msg) msg.textContent = "Lendo a ficha…";
   try {
     const F = await lerPdfFicha(await file.arrayBuffer());
-    importacaoPdf = { F, nomeArquivo: file.name, escolha: {} };
+    importacaoPdf = { F, nomeArquivo: file.name, escolha: {}, destino: destinoImportacao };
     revisaoImportacao();
   } catch (e) {
     const t =
@@ -792,12 +794,19 @@ function revisaoImportacao() {
   </div>
   <p style="margin:0">${esc([c.raca, c.tendencia].filter(Boolean).join(" · "))}${r.resumo.length ? `<br><span class="small muted">Importado: ${esc(listaPt(r.resumo))}.</span>` : ""}</p>
   ${tudoCerto}${blocoAvisos}${blocoDifs}
-  <div class="row"><button class="btn pri" data-a="impconfirmar" ${k ? "" : "disabled"}>Criar personagem</button><button class="btn" data-a="close">Cancelar</button>${k ? "" : '<span class="small" style="color:var(--bad)">Escolha a classe para continuar.</span>'}</div>`;
+  <div class="row"><button class="btn pri" data-a="impconfirmar" ${k ? "" : "disabled"}>${imp.destino === "campanha" ? "Adicionar à campanha" : "Criar personagem"}</button><button class="btn" data-a="close">Cancelar</button>${k ? "" : '<span class="small" style="color:var(--bad)">Escolha a classe para continuar.</span>'}</div>`;
 }
 function confirmarImportacao() {
   if (!importacaoPdf) return;
   const { c } = montarDoPdf(importacaoPdf.F, importacaoPdf.escolha);
   if (!c.classeKey) return;
+  if (importacaoPdf.destino === "campanha") {
+    importacaoPdf = null;
+    adicionarNaCampanha(c, "pdf");
+    closeModal();
+    render();
+    return;
+  }
   state.chars[c.id] = c;
   state.active = c.id;
   importacaoPdf = null;

@@ -38,6 +38,7 @@ function syncCat(c) {
 /** Versão mais recente das migrações abaixo. Suba ao criar uma nova. */
 const MIG_ATUAL = 6;
 function migrate() {
+  state.campanhas = state.campanhas || {};
   for (const c of Object.values(state.chars)) {
     let ch = syncCat(c);
     for (const t of c.tracos || [])
