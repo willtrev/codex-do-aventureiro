@@ -1,0 +1,6 @@
+# Ficha oficial da WotC (uso pessoal), não vai para o repositório
+ficha.pdf
+# Banco do SRD baixado do Andargor (só é usado para gerar js/dados/srd-*.js)
+srd35-db-*.zip
+*.db
+__pycache__/

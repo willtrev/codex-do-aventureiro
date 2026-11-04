@@ -1,0 +1,36 @@
+/* ================= Estado da interface ================= */
+const TABS = [
+  ["painel", "Painel"],
+  ["magias", "Magias"],
+  ["pericias", "Perícias"],
+  ["ficha", "Ficha"],
+  ["inventario", "Inventário"],
+  ["notas", "Notas e backup"],
+];
+let tab = "painel";
+function readHash() {
+  const h = location.hash.replace("#", "");
+  tab = TABS.some((t) => t[0] === h) ? h : "painel";
+}
+const cur = () => state.chars[state.active];
+
+function getPath(o, p) {
+  return p.split(".").reduce((a, k) => (a == null ? a : a[k]), o);
+}
+function setPath(o, p, v) {
+  const ks = p.split(".");
+  let a = o;
+  for (let i = 0; i < ks.length - 1; i++) {
+    if (a[ks[i]] == null) a[ks[i]] = /^\d+$/.test(ks[i + 1]) ? [] : {};
+    a = a[ks[i]];
+  }
+  a[ks[ks.length - 1]] = v;
+}
+function inp(path, opt = {}) {
+  const c = cur();
+  const v = getPath(c, path);
+  const t = opt.type || "text";
+  const id = "f_" + path.replace(/\W/g, "_");
+  const ctrl = `<input id="${id}" type="${t}" data-b="${path}" value="${esc(v ?? "")}" ${opt.step ? `step="${opt.step}"` : ""} ${opt.w ? `style="width:${opt.w}"` : ""} ${opt.ph ? `placeholder="${esc(opt.ph)}"` : ""}>`;
+  return opt.label ? `<label class="f" for="${id}">${esc(opt.label)}${ctrl}</label>` : ctrl;
+}
