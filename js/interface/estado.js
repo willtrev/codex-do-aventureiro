@@ -12,6 +12,11 @@ function readHash() {
   const h = location.hash.replace("#", "");
   tab = TABS.some((t) => t[0] === h) ? h : "painel";
 }
+/** Troca de aba (atualiza o endereço sem criar entrada nova no histórico). */
+function irPara(t) {
+  tab = t;
+  history.replaceState(null, "", "#" + t);
+}
 const cur = () => state.chars[state.active];
 
 function getPath(o, p) {

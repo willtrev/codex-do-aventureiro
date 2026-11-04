@@ -373,6 +373,7 @@ document.addEventListener("click", async (e) => {
       }
       state.active = v.id;
       touch("__meta");
+      irPara("painel");
       render();
       break;
     }
@@ -392,10 +393,11 @@ document.addEventListener("click", async (e) => {
       const id = c.id;
       delete state.chars[id];
       touch(id);
-      // Sem personagens, volta para a tela inicial.
+      // Vai para o painel do próximo personagem; sem nenhum, mostra a tela inicial.
       state.active = Object.keys(state.chars)[0] || null;
       touch("__meta");
       closeModal();
+      irPara("painel");
       render();
       break;
     }
@@ -422,6 +424,7 @@ document.addEventListener("click", async (e) => {
         state.active = n.id;
         touch(n.id);
         touch("__meta");
+        irPara("painel");
         render();
       } catch (err) {
         m.textContent = "Esse texto não é um backup válido.";
