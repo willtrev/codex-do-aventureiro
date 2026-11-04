@@ -20,18 +20,36 @@ Ficha de personagem interativa para **D&D 3.5**. Faz os cálculos da ficha e aco
 - **Exportar para PDF:** preenche a ficha oficial editável de 4 páginas.
 - **Idioma do conteúdo:** **PT + EN** (padrão), **PT** ou **EN**. Os rótulos da interface continuam em português.
 - **Tema:** claro, escuro ou automático, no estilo Flat Design.
-- **Personagens de teste:** um por classe, no nível 1.
+- **Tela inicial:** o primeiro acesso começa sem personagens. Dá para criar um, importar um backup ou carregar os exemplos (Volis e um personagem de teste de nível 1 por classe).
 
 ## Como usar
 
 Abra o `index.html` em qualquer navegador moderno. Funciona até direto do disco (`file://`).
 
-Para hospedar de graça, use o **GitHub Pages**: em *Settings → Pages*, escolha a branch `main` e a pasta raiz.
+### Hospedar de graça
+
+O site é estático, sem build, então qualquer hospedagem de arquivos serve.
+
+- **GitHub Pages:** só é gratuito com o repositório **público**. Em *Settings → Pages*, escolha *Deploy from a branch*, a branch `main` e a pasta `/ (root)`.
+- **Cloudflare Pages:** gratuito também com o repositório **privado**. Em *Workers & Pages → Create → Pages → Connect to Git*, escolha o repositório, deixe o *Build command* vazio e use `/` como *Build output directory*. Cada `git push` na `main` atualiza o site.
+
+Escolha o endereço definitivo antes de as pessoas começarem a usar: os dados ficam presos ao endereço do site (veja abaixo).
 
 ### Onde os dados ficam salvos
 
-- **Fora do Claude:** os personagens ficam no navegador (`localStorage`). Use **Notas e backup → Copiar backup** para guardar uma cópia e **Importar** para restaurar.
-- **Como artefato do Claude:** os dados também ficam salvos na sua conta.
+- **No site hospedado ou aberto do disco:** no navegador de cada pessoa (`localStorage`). Nada vai para um servidor, e cada pessoa só vê os próprios personagens.
+- **Como artefato do Claude:** os dados também ficam salvos na conta de quem usa.
+
+Os personagens salvos no navegador somem ou deixam de aparecer quando:
+
+- os dados de navegação são limpos (cookies e dados de sites), à mão ou por um programa de limpeza;
+- a pessoa usa aba anônima: tudo some ao fechar a janela;
+- a pessoa abre o site em outro navegador ou aparelho;
+- o Safari (iPhone ou Mac) apaga os dados de um site que fica cerca de 7 dias sem ser aberto;
+- o site muda de endereço (repositório renomeado, domínio novo);
+- o aparelho fica sem espaço e o navegador libera dados de sites.
+
+Para se proteger, use **Notas e backup → Copiar backup** depois de cada sessão e guarde o texto. Para restaurar, cole o backup na tela inicial ou em **Notas e backup → Importar**.
 
 ### Ficha em PDF
 
@@ -74,6 +92,7 @@ js/
     srd-escolha.js         janelas de talentos e equipamento do SRD
     eventos.js             cliques e campos
   telas/                   uma função por aba (painel, magias, perícias, ficha, inventário, notas)
+                           e a tela inicial (inicio.js), mostrada quando não há personagens
   pdf/exportar.js          preenche a ficha em PDF
   app.js                   inicialização
 tools/gerar_dados.py       gera js/dados/srd-*.js a partir do banco do SRD
@@ -94,6 +113,25 @@ python3 tools/gerar_dados.py srd/dnd35.db
 ```
 
 O zip e o `.db` estão no `.gitignore`.
+
+## Commits
+
+As mensagens seguem o [Conventional Commits](https://www.conventionalcommits.org/pt-br/v1.0.0/), com a descrição em português:
+
+```
+<tipo>(<escopo opcional>): <descrição no imperativo, em minúsculas>
+```
+
+| Tipo | Quando usar |
+| --- | --- |
+| `feat` | funcionalidade nova (`feat(magias): adiciona busca no catálogo`) |
+| `fix` | correção de erro (`fix(pdf): corrige campo de CA na ficha`) |
+| `docs` | só documentação, como este README |
+| `style` | formatação, sem mudar o comportamento |
+| `refactor` | reorganiza o código sem mudar o comportamento |
+| `chore` | manutenção: dados do SRD gerados de novo, configuração, `.gitignore` |
+
+Para formatar o código antes do commit: `npx prettier --write .` (as regras estão em `.prettierrc.json`; os `srd-*.js` gerados ficam de fora).
 
 ## Licença e aviso
 
