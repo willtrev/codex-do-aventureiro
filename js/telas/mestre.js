@@ -8,8 +8,18 @@
 
    Estrutura salva em state.campanhas[id]:
      { id, nome, criada, ordem, membros: [{ mid, importado, origem, c }] } */
+import { clamp, clone, esc, lvlName, mod, sg, sizeGrap, uidGen } from "../util.js";
+import { ATTRS, SK } from "../regras/basicas.js";
+import { at, classFeatures, cls, spellAttr } from "../regras/classes.js";
+import { blankChar } from "../personagens/modelos.js";
+import { ac, atkBonus, bba, dmgTxt, ensurePrep, isSpont, saves, skill, spell } from "../regras/calculos.js";
+import { state, statusHTML, touch } from "../armazenamento/armazenamento.js";
+import { theme } from "../interface/tema.js";
+import { IDIOMAS, idioma, nomeDe } from "../interface/idioma.js";
+import { normTxt } from "../pdf/importar.js";
+import { modal } from "../interface/modais.js";
 
-const ORDENS = [
+export const ORDENS = [
   ["chegada", "Ordem de importação"],
   ["nome", "Nome"],
   ["iniciativa", "Iniciativa"],
@@ -18,16 +28,16 @@ const ORDENS = [
 ];
 
 /** Card aguardando confirmação para sair da campanha. */
-let membroARemover = null;
-const campanha = () => (state.campanhas || {})[state.campanhaAtiva] || null;
-function salvarCampanha(g) {
+export let membroARemover = null;
+export const campanha = () => (state.campanhas || {})[state.campanhaAtiva] || null;
+export function salvarCampanha(g) {
   touch("g:" + g.id);
   touch("__meta");
 }
 
 /* ---------- Valores mostrados no card ---------- */
 
-function estadoPV(c) {
+export function estadoPV(c) {
   const at_ = +c.hp.atual,
     mx = +c.hp.max || 0;
   if (at_ < -9) return "Morto";
@@ -37,14 +47,14 @@ function estadoPV(c) {
   if (mx && at_ / mx < 0.34) return "Muito ferido";
   return "";
 }
-function corPV(c) {
+export function corPV(c) {
   const pct = c.hp.max ? (c.hp.atual / c.hp.max) * 100 : 0;
   return c.hp.atual <= 0 || pct < 34 ? "var(--bad)" : pct < 67 ? "var(--warn)" : "var(--good)";
 }
-const iniciativa = (c) => mod(at(c, "des")) + (+c.outros.init || 0);
-const agarrar = (c) => bba(c) + mod(at(c, "for")) + sizeGrap(c.tamanho) + (+c.outros.agarrar || 0);
+export const iniciativa = (c) => mod(at(c, "des")) + (+c.outros.init || 0);
+export const agarrar = (c) => bba(c) + mod(at(c, "for")) + sizeGrap(c.tamanho) + (+c.outros.agarrar || 0);
 
-function cardMembro(m) {
+export function cardMembro(m) {
   const c = m.c;
   const a = ac(c),
     s = saves(c);
@@ -71,7 +81,7 @@ function cardMembro(m) {
   </article>`;
 }
 
-function ordenados(g) {
+export function ordenados(g) {
   const ms = g.membros.slice();
   const o = g.ordem || "chegada";
   if (o === "nome") ms.sort((a, b) => a.c.nome.localeCompare(b.c.nome));
@@ -83,7 +93,7 @@ function ordenados(g) {
 
 /* ---------- Tela ---------- */
 
-function topoMestre() {
+export function topoMestre() {
   const g = campanha();
   const lista = Object.values(state.campanhas || {});
   const toggles = `<span class="theme" role="group" aria-label="Idioma do conteúdo">${IDIOMAS.map(
@@ -107,7 +117,7 @@ function topoMestre() {
    <div class="row"><span class="status" id="st">${statusHTML()}</span><span class="spacer"></span>${toggles}</div>`;
 }
 
-function vMestre() {
+export function vMestre() {
   topoMestre();
   const g = campanha();
   if (!g)
@@ -147,7 +157,7 @@ function vMestre() {
 
 /* ---------- Detalhes ---------- */
 
-function detalheMembro(mid) {
+export function detalheMembro(mid) {
   const g = campanha();
   const m = g && g.membros.find((x) => x.mid === mid);
   if (!m) return;
@@ -203,7 +213,7 @@ function detalheMembro(mid) {
 /* ---------- Importar para a campanha ---------- */
 
 /** Prepara uma cópia leve da ficha (sem os textos longos das magias). */
-function copiaParaCampanha(c) {
+export function copiaParaCampanha(c) {
   const x = Object.assign(blankChar(), clone(c));
   x.grimorio = (x.grimorio || []).map((s) => {
     const { desc, descPt, alvo, ...resto } = s;
@@ -212,7 +222,7 @@ function copiaParaCampanha(c) {
   return x;
 }
 /** Adiciona ou substitui (pelo nome) uma ficha na campanha ativa. Devolve "novo" ou "atualizado". */
-function adicionarNaCampanha(c, origem) {
+export function adicionarNaCampanha(c, origem) {
   const g = campanha();
   if (!g) return null;
   const copia = copiaParaCampanha(c);
@@ -226,13 +236,13 @@ function adicionarNaCampanha(c, origem) {
   salvarCampanha(g);
   return ja ? "atualizado" : "novo";
 }
-function backupModal() {
+export function backupModal() {
   modal(`<div class="row"><h2 style="font-size:18px;color:var(--ink)">Colar backup de personagem</h2><span class="spacer"></span><button class="btn sm ghost" data-a="close">Fechar</button></div>
   <p class="small muted" style="margin:0">No Códex do jogador: <b>Notas e backup → Copiar backup</b>. Cole o texto aqui.</p>
   <label class="f" for="mbk">Backup<textarea id="mbk" placeholder='{"nome": ...}' style="min-height:160px"></textarea></label>
   <div class="row"><button class="btn pri" data-a="mbackupok">Adicionar à campanha</button><span id="mbkmsg" class="small" role="status"></span></div>`);
 }
-function locaisModal() {
+export function locaisModal() {
   const g = campanha();
   const lista = Object.values(state.chars)
     .map((c) => {
@@ -244,4 +254,9 @@ function locaisModal() {
   <p class="small muted" style="margin:0">Fichas salvas neste aparelho. Útil para NPCs e para quando o mestre também joga.</p>
   <div class="list">${lista}</div>
   <div class="row"><button class="btn pri" data-a="mlocaisok">Adicionar à campanha</button><button class="btn" data-a="close">Cancelar</button></div>`);
+}
+
+/* Funções para outros arquivos alterarem as variáveis deste (imports são somente leitura). */
+export function setMembroARemover(v) {
+  membroARemover = v;
 }

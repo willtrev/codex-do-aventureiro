@@ -3,9 +3,13 @@
   Junta os dados do SRD (js/dados/srd-magias.js) com os nomes e resumos em português (js/dados/traducoes-magias.js)
   e traduz os campos de regra com js/regras/traduzir.js.
 */
+import { TR_ESCOLAS, TR_SUBESCOLAS } from "./traducoes.js";
+import { TR_MAGIAS } from "./traducoes-magias.js";
+import { trAlcance, trComponentes, trDescritores, trDuracao, trExecucao, trRM, trTeste } from "../regras/traduzir.js";
+import { SRD_MAGIAS } from "./srd-magias.js";
 
 /* Ajustes da rolagem de ataque detectada no texto do SRD: "dist", "corpo" ou "" (sem ataque) */
-const ATAQUE_AJUSTES = {
+export const ATAQUE_AJUSTES = {
   Fireball: "",
   "Meteor Swarm": "",
   "Animate Rope": "",
@@ -22,7 +26,7 @@ const ATAQUE_AJUSTES = {
   "Touch of Fatigue": "corpo",
 };
 
-function nivelPrincipal(m) {
+export function nivelPrincipal(m) {
   const ls = Object.values(m.listas);
   if (m.listas.mago !== undefined) return m.listas.mago;
   if (ls.length) return Math.min(...ls);
@@ -30,7 +34,7 @@ function nivelPrincipal(m) {
   return ds.length ? Math.min(...ds) : 0;
 }
 
-const CAT = window.SRD.magias.map((m, i) => {
+export const CAT = SRD_MAGIAS.map((m, i) => {
   const pt = TR_MAGIAS[m.nome] || {};
   const alvoOriginal = m.alvo || m.area || m.efeito || "";
   return {
@@ -55,11 +59,11 @@ const CAT = window.SRD.magias.map((m, i) => {
     ataque: m.nome in ATAQUE_AJUSTES ? ATAQUE_AJUSTES[m.nome] : m.ataque || "",
   };
 });
-const CAT_POR_EN = new Map(CAT.map((c) => [c.en.toLowerCase(), c]));
-const SRD_MAGIA_POR_EN = new Map(window.SRD.magias.map((m) => [m.nome.toLowerCase(), m]));
+export const CAT_POR_EN = new Map(CAT.map((c) => [c.en.toLowerCase(), c]));
+export const SRD_MAGIA_POR_EN = new Map(SRD_MAGIAS.map((m) => [m.nome.toLowerCase(), m]));
 
 /* Encontra a magia do catálogo a partir do nome usado nas listas de domínio do SRD (ex.: "mass cure light wounds") */
-function magiaPorNomeSRD(n) {
+export function magiaPorNomeSRD(n) {
   n = String(n || "")
     .toLowerCase()
     .trim();
@@ -73,4 +77,4 @@ function magiaPorNomeSRD(n) {
   for (const c of CAT) if (c.en.toLowerCase().replace(/^[^ ]+'s /, "") === n) return c;
   return null;
 }
-const temTeste = (ts) => !!ts && ts !== "—" && !/^nenhum\b/.test(ts);
+export const temTeste = (ts) => !!ts && ts !== "—" && !/^nenhum\b/.test(ts);

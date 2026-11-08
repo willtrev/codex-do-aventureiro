@@ -1,5 +1,10 @@
 /* ================= Aba Perícias ================= */
-function vPericias(c) {
+import { esc, sg } from "../util.js";
+import { SK, SKILLS } from "../regras/basicas.js";
+import { skill, skillPts } from "../regras/calculos.js";
+import { inp } from "../interface/estado.js";
+
+export function vPericias(c) {
   const pts = skillPts(c),
     L = +c.nivel || 1;
   return `<div class="grid"><section class="card c12">

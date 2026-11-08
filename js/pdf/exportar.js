@@ -1,5 +1,11 @@
 /* ================= Exportar PDF (ficha editável) ================= */
-const KN_SHORT = {
+import { mod, sg, sizeAC, sizeGrap } from "../util.js";
+import { SK } from "../regras/basicas.js";
+import { at, classFeatures, cls, spellAttr } from "../regras/classes.js";
+import { ac, atkBonus, bba, dmgTxt, isSpont, lightLoadKg, saves, skill, slotTable, spell } from "../regras/calculos.js";
+import { modal } from "../interface/modais.js";
+
+export const KN_SHORT = {
   c_arcano: "arcano",
   c_arq: "arquitetura",
   c_masm: "masmorras",
@@ -11,7 +17,7 @@ const KN_SHORT = {
   c_rel: "religião",
   c_planos: "planos",
 };
-const SHEET_ROWS = [
+export const SHEET_ROWS = [
   "abrir",
   "acrobacia",
   "adestrar",
@@ -59,11 +65,11 @@ const SHEET_ROWS = [
   "X",
   "X",
 ];
-const ROW_CHECK = [
+export const ROW_CHECK = [
   653, 654, 655, 656, 657, 712, 713, 660, 661, 662, 663, 664, 665, 666, 667, 668, 669, 670, 671, 672, 673, 674, 675,
   676, 677, 714, 679, 680, 681, 682, 683, 684, 685, 686, 687, 688, 689, 690, 691, 692, 693, 694, 695, 696, 697, 698,
 ];
-const SPEC_FIELD = {
+export const SPEC_FIELD = {
   5: 317,
   6: 318,
   7: 319,
@@ -78,11 +84,11 @@ const SPEC_FIELD = {
   38: 328,
   39: 329,
 };
-const kg = (n) => {
+export const kg = (n) => {
   const r = Math.round(n * 100) / 100;
   return r === 0 ? "—" : String(r).replace(".", ",") + " kg";
 };
-function wrapLines(prefix, items, width) {
+export function wrapLines(prefix, items, width) {
   const out = [];
   let line = prefix;
   items.forEach((it, i) => {
@@ -95,7 +101,7 @@ function wrapLines(prefix, items, width) {
   if (line.trim()) out.push(line.trimEnd());
   return out;
 }
-function buildPdfFields(c) {
+export function buildPdfFields(c) {
   const T = {},
     checks = [];
   const set = (n, v) => {
@@ -377,14 +383,14 @@ function buildPdfFields(c) {
   });
   return { T, checks };
 }
-const WINANSI_EXTRA = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
-function pdfSafe(t) {
+export const WINANSI_EXTRA = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
+export function pdfSafe(t) {
   return String(t)
     .replace(/\u2212/g, "-")
     .replace(/[^\x20-\x7e\xa0-\xff]/g, (ch) => (WINANSI_EXTRA.includes(ch) ? ch : ch === "\n" ? " " : "?"));
 }
-let pdfLibPromise = null;
-function loadPdfLib() {
+export let pdfLibPromise = null;
+export function loadPdfLib() {
   if (window.PDFLib) return Promise.resolve(window.PDFLib);
   if (!pdfLibPromise)
     pdfLibPromise = new Promise((res, rej) => {
@@ -399,8 +405,8 @@ function loadPdfLib() {
     });
   return pdfLibPromise;
 }
-let SHEET_BYTES = null;
-async function getSheet() {
+export let SHEET_BYTES = null;
+export async function getSheet() {
   if (SHEET_BYTES) return SHEET_BYTES;
   try {
     const r = await fetch("ficha.pdf");
@@ -414,7 +420,7 @@ async function getSheet() {
   } catch (e) {}
   return null;
 }
-function plainDownload(blob, name) {
+export function plainDownload(blob, name) {
   const u = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = u;
@@ -424,7 +430,7 @@ function plainDownload(blob, name) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(u), 5000);
 }
-async function exportPdf(c) {
+export async function exportPdf(c) {
   modal(
     `<h2 style="font-size:18px;color:var(--ink)">Exportar ficha em PDF</h2><p id="pdfmsg" style="margin:0">Preenchendo a ficha…</p><div class="row"><button class="btn" data-a="close">Fechar</button></div>`
   );
@@ -517,4 +523,9 @@ async function exportPdf(c) {
       msg("Downloads não estão disponíveis neste modo de visualização.");
     else msg("Não consegui gerar o PDF. Verifique a conexão e tente de novo.");
   }
+}
+
+/* Funções para outros arquivos alterarem as variáveis deste (imports são somente leitura). */
+export function setSHEET_BYTES(v) {
+  SHEET_BYTES = v;
 }

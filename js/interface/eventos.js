@@ -1,5 +1,50 @@
 /* ================= Eventos ================= */
-function readVal(el) {
+import { clamp, clone, uidGen } from "../util.js";
+import { SCHOOLS } from "../regras/basicas.js";
+import { CAT } from "../dados/catalogo.js";
+import { classFeatures, cls } from "../regras/classes.js";
+import { blankChar, volis } from "../personagens/modelos.js";
+import { domList, syncDomainSpells } from "../regras/dominios.js";
+import { testChars } from "../personagens/testes.js";
+import { AMMO, ammoFor, proibList, slotTable, spell } from "../regras/calculos.js";
+import { setStatus, state, touch } from "../armazenamento/armazenamento.js";
+import { applyTheme, setTheme, theme } from "./tema.js";
+import { setIdioma } from "./idioma.js";
+import { cur, getPath, irPara, readHash, setPath } from "./estado.js";
+import { render } from "../telas/topo.js";
+import {
+  adicionarNaCampanha,
+  backupModal,
+  campanha,
+  detalheMembro,
+  locaisModal,
+  membroARemover,
+  salvarCampanha,
+  setMembroARemover,
+  topoMestre,
+} from "../telas/mestre.js";
+import { exportPdf, setSHEET_BYTES } from "../pdf/exportar.js";
+import {
+  confirmarImportacao,
+  importPdfModal,
+  importacaoPdf,
+  lerArquivoImportacao,
+  revisaoImportacao,
+} from "../pdf/importar.js";
+import {
+  addSpellModal,
+  closeModal,
+  confirmModal,
+  filtrarCatalogo,
+  newCharModal,
+  newCharOf,
+  restModal,
+  setBuscaMagia,
+  spellInfo,
+} from "./modais.js";
+import { addEquip, addFeat, equipModal, featModal, filtrarSRD, setBuscaSRD, setFiltroEquip } from "./srd-escolha.js";
+
+export function readVal(el) {
   if (el.type === "checkbox") return el.checked;
   if (el.type === "number") return el.value === "" ? 0 : +el.value;
   return el.value;
@@ -7,12 +52,12 @@ function readVal(el) {
 document.addEventListener("input", (e) => {
   const el = e.target;
   if (el.id === "busca_srd") {
-    buscaSRD = el.value;
+    setBuscaSRD(el.value);
     filtrarSRD();
     return;
   }
   if (el.id === "busca_magia") {
-    buscaMagia = el.value;
+    setBuscaMagia(el.value);
     filtrarCatalogo();
     return;
   }
@@ -26,7 +71,7 @@ document.addEventListener("change", (e) => {
     c = cur();
   if (!el.dataset) return;
   if (el.id === "filtro_equip") {
-    filtroEquip = el.value;
+    setFiltroEquip(el.value);
     filtrarSRD();
     return;
   }
@@ -93,7 +138,7 @@ document.addEventListener("change", (e) => {
   }
   if (el.dataset.a === "sheetfile" && el.files && el.files[0]) {
     el.files[0].arrayBuffer().then((b) => {
-      SHEET_BYTES = b;
+      setSHEET_BYTES(b);
       exportPdf(cur());
     });
     return;
@@ -350,7 +395,7 @@ document.addEventListener("click", async (e) => {
       render();
       break;
     case "theme":
-      theme = b.dataset.t;
+      setTheme(b.dataset.t);
       try {
         localStorage.setItem("grimorio-tema", theme);
       } catch (e) {}
@@ -480,7 +525,7 @@ document.addEventListener("click", async (e) => {
     case "mremover": {
       const m = campanha().membros.find((x) => x.mid === b.dataset.m);
       if (m) confirmModal(`Tirar ${m.c.nome} da campanha? A ficha do jogador não é afetada.`, "mremoverok");
-      membroARemover = b.dataset.m;
+      setMembroARemover(b.dataset.m);
       break;
     }
     case "mremoverok": {

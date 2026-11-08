@@ -1,6 +1,5 @@
 // Gerado por tools/gerar_dados.py a partir do SRD 3.5 (Open Game License). Não edite à mão.
-window.SRD = window.SRD || {};
-window.SRD.classes = {
+export const SRD_CLASSES = {
  "Barbarian": {
   "nome": "Barbarian",
   "dado_vida": 12,

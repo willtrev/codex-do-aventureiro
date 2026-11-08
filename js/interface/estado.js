@@ -1,5 +1,8 @@
 /* ================= Estado da interface ================= */
-const TABS = [
+import { esc } from "../util.js";
+import { state } from "../armazenamento/armazenamento.js";
+
+export const TABS = [
   ["painel", "Painel"],
   ["magias", "Magias"],
   ["pericias", "Perícias"],
@@ -7,27 +10,27 @@ const TABS = [
   ["inventario", "Inventário"],
   ["notas", "Notas e backup"],
 ];
-let tab = "painel";
+export let tab = "painel";
 /** "fichas": abas do personagem; "mestre": hub da campanha (#mestre). */
-let modo = "fichas";
-function readHash() {
+export let modo = "fichas";
+export function readHash() {
   const h = location.hash.replace("#", "");
   modo = h === "mestre" ? "mestre" : "fichas";
   if (modo === "mestre") return;
   tab = TABS.some((t) => t[0] === h) ? h : "painel";
 }
 /** Troca de aba (atualiza o endereço sem criar entrada nova no histórico). */
-function irPara(t) {
+export function irPara(t) {
   tab = t;
   modo = "fichas";
   history.replaceState(null, "", "#" + t);
 }
-const cur = () => state.chars[state.active];
+export const cur = () => state.chars[state.active];
 
-function getPath(o, p) {
+export function getPath(o, p) {
   return p.split(".").reduce((a, k) => (a == null ? a : a[k]), o);
 }
-function setPath(o, p, v) {
+export function setPath(o, p, v) {
   const ks = p.split(".");
   let a = o;
   for (let i = 0; i < ks.length - 1; i++) {
@@ -36,7 +39,7 @@ function setPath(o, p, v) {
   }
   a[ks[ks.length - 1]] = v;
 }
-function inp(path, opt = {}) {
+export function inp(path, opt = {}) {
   const c = cur();
   const v = getPath(c, path);
   const t = opt.type || "text";

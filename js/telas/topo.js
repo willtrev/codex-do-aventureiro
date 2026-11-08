@@ -1,5 +1,21 @@
 /* ================= Render ================= */
-function render() {
+import { esc } from "../util.js";
+import { cls } from "../regras/classes.js";
+import { alignBlock, alignCode } from "../regras/tendencias.js";
+import { ensurePrep } from "../regras/calculos.js";
+import { state, statusHTML } from "../armazenamento/armazenamento.js";
+import { theme } from "../interface/tema.js";
+import { IDIOMAS, idioma } from "../interface/idioma.js";
+import { TABS, cur, modo, tab } from "../interface/estado.js";
+import { vInicio } from "./inicio.js";
+import { vMestre } from "./mestre.js";
+import { vPainel } from "./painel.js";
+import { vMagias } from "./magias.js";
+import { vPericias } from "./pericias.js";
+import { vFicha } from "./ficha.js";
+import { vInv, vNotas } from "./inventario-notas.js";
+
+export function render() {
   if (modo === "mestre") {
     document.getElementById("main").innerHTML = vMestre();
     return;

@@ -1,5 +1,11 @@
 /* Atualiza dados salvos por versões anteriores do app. */
-function syncCat(c) {
+import { CAT, CAT_POR_EN } from "../dados/catalogo.js";
+import { classKeyFromName } from "../regras/classes.js";
+import { volis } from "../personagens/modelos.js";
+import { testChars } from "../personagens/testes.js";
+import { state, touch } from "./armazenamento.js";
+
+export function syncCat(c) {
   let ch = false;
   for (const s of c.grimorio || []) {
     const k =
@@ -36,8 +42,8 @@ function syncCat(c) {
   return ch;
 }
 /** Versão mais recente das migrações abaixo. Suba ao criar uma nova. */
-const MIG_ATUAL = 6;
-function migrate() {
+export const MIG_ATUAL = 6;
+export function migrate() {
   state.campanhas = state.campanhas || {};
   for (const c of Object.values(state.chars)) {
     let ch = syncCat(c);

@@ -1,5 +1,10 @@
 /* ================= Abas Inventário e Notas ================= */
-function vInv(c) {
+import { esc } from "../util.js";
+import { lightLoadKg } from "../regras/calculos.js";
+import { inp } from "../interface/estado.js";
+import { listEditor } from "./ficha.js";
+
+export function vInv(c) {
   const tot = c.itens.reduce((a, x) => a + (+x.peso || 0) * (+x.qtd || 1), 0);
   const light = lightLoadKg(c);
   const tag =
@@ -23,7 +28,7 @@ function vInv(c) {
   </div>`;
 }
 
-function vNotas(c) {
+export function vNotas(c) {
   return `<div class="grid">
   <section class="card c7"><h2>Notas da campanha</h2><textarea id="f_notas" data-b="notas" style="min-height:320px">${esc(c.notas)}</textarea></section>
   <section class="card c5"><h2>Backup</h2>

@@ -1,5 +1,26 @@
 /* ================= Aba Painel ================= */
-function vPainel(c) {
+import { clamp, esc, lvlName, mod, sg, sizeGrap } from "../util.js";
+import { at, classFeatures, cls, spellAttr } from "../regras/classes.js";
+import {
+  AMMO,
+  ac,
+  ammoFor,
+  atkBonus,
+  atkParts,
+  bba,
+  dmgParts,
+  dmgTxt,
+  isSpont,
+  partsTxt,
+  saves,
+  slotTable,
+  spell,
+  spellLine,
+} from "../regras/calculos.js";
+import { nomeHTML, nomeTxt } from "../interface/idioma.js";
+import { inp } from "../interface/estado.js";
+
+export function vPainel(c) {
   const a = ac(c),
     s = saves(c),
     hpPct = c.hp.max ? clamp((c.hp.atual / c.hp.max) * 100, 0, 100) : 0;
@@ -99,7 +120,7 @@ function vPainel(c) {
   ${t.length ? classCard(c, "c12") : ""}
   </div>`;
 }
-function classCard(c, span) {
+export function classCard(c, span) {
   const f = classFeatures(c);
   const u = c.usos || {};
   return `<section class="card ${span}"><div class="row"><h2>Habilidades de ${esc(cls(c).nome.toLowerCase())}</h2><span class="spacer"></span>${!slotTable(c).length ? '<button class="btn sm pri" data-a="rest">Descansar 8 h</button>' : ""}</div>
@@ -121,7 +142,7 @@ function classCard(c, span) {
   ${f.I.length ? `<dl class="kv">${f.I.map((i) => `<dt>${esc(i.nome)}${i.valor ? ` <b style="color:var(--ink)">${i.valor}</b>` : ""}</dt><dd class="small muted">${esc(i.desc)}</dd>`).join("")}</dl>` : ""}
   </section>`;
 }
-function spontLevel(c, r) {
+export function spontLevel(c, r) {
   const used = +(c.usados || {})[r.l] || 0,
     left = Math.max(0, r.normal - used);
   const known = c.grimorio.filter((s) => s.nivel === r.l).sort((a, b) => a.nome.localeCompare(b.nome));
@@ -141,7 +162,7 @@ function spontLevel(c, r) {
     }
   </div>`;
 }
-function slotLevel(c, r, play) {
+export function slotLevel(c, r, play) {
   const p = c.prep[r.l];
   const all = [
     ...(r.escola ? [{ ...p.escola, school: true, key: "e" }] : []),

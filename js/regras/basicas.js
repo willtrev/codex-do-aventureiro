@@ -1,5 +1,5 @@
 /* Tabelas básicas: escolas, atributos, perícias, sinergias e carga. */
-const SCHOOLS = [
+export const SCHOOLS = [
   "Abjuração",
   "Adivinhação",
   "Conjuração",
@@ -10,7 +10,7 @@ const SCHOOLS = [
   "Transmutação",
   "Universal",
 ];
-const ATTRS = [
+export const ATTRS = [
   ["for", "FOR", "Força"],
   ["des", "DES", "Destreza"],
   ["con", "CON", "Constituição"],
@@ -18,7 +18,7 @@ const ATTRS = [
   ["sab", "SAB", "Sabedoria"],
   ["car", "CAR", "Carisma"],
 ];
-const SKILLS = [
+export const SKILLS = [
   ["abrir", "Abrir Fechaduras", "des", 1],
   ["acrobacia", "Acrobacia", "des", 1],
   ["adestrar", "Adestrar Animais", "car", 1],
@@ -64,10 +64,10 @@ const SKILLS = [
   ["cordas", "Usar Cordas", "des", 0],
   ["uim", "Usar Instrumento Mágico", "car", 1],
 ];
-const SK = Object.fromEntries(
+export const SK = Object.fromEntries(
   SKILLS.map((s) => [s[0], { k: s[0], nome: s[1], ab: s[2], trained: !!s[3], spec: !!s[4] }])
 );
-const SYN = {
+export const SYN = {
   diplomacia: ["blefar", "c_nob", "sentir"],
   identificar: ["c_arcano"],
   obter: ["c_local"],
@@ -78,7 +78,7 @@ const SYN = {
   acrobacia: ["saltar"],
   cavalgar: ["adestrar"],
 };
-const LIGHT_LB = [
+export const LIGHT_LB = [
   0, 3, 6, 10, 13, 16, 20, 23, 26, 30, 33, 38, 43, 50, 58, 66, 76, 86, 100, 116, 133, 153, 173, 200, 233, 266, 306, 346,
   400, 466,
 ];

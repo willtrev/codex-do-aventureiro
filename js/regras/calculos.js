@@ -1,5 +1,11 @@
 /* ================= Cálculos ================= */
-function slotTable(c) {
+import { clamp, mod, sg, sizeAC } from "../util.js";
+import { LIGHT_LB, SCHOOLS, SK, SYN } from "./basicas.js";
+import { temTeste } from "../dados/catalogo.js";
+import { at, babOf, bonusSpells, casterLevel, cls, lvlOf, saveBase, spellAttr } from "./classes.js";
+import { DOMAINS, domList } from "./dominios.js";
+
+export function slotTable(c) {
   const k = cls(c),
     m = k.magia;
   if (!m) return [];
@@ -20,7 +26,7 @@ function slotTable(c) {
   }
   return out;
 }
-function ensurePrep(c) {
+export function ensurePrep(c) {
   const t = slotTable(c);
   c.prep = c.prep || {};
   for (const r of t) {
@@ -31,11 +37,11 @@ function ensurePrep(c) {
   }
   return t;
 }
-const isSpont = (c) => {
+export const isSpont = (c) => {
   const m = cls(c).magia;
   return !!(m && m.tipo === "espontanea");
 };
-function spellAtk(c, s) {
+export function spellAtk(c, s) {
   if (!s.ataque) return null;
   const parts = [["BBA", bba(c)], s.ataque === "dist" ? ["Des", mod(at(c, "des"))] : ["For", mod(at(c, "for"))]];
   const sz = sizeAC(c.tamanho);
@@ -46,7 +52,7 @@ function spellAtk(c, s) {
     parts,
   };
 }
-function spellLine(c, s) {
+export function spellLine(c, s) {
   const at = spellAtk(c, s);
   return [
     at ? at.nome + " " + sg(at.total) + " (contra CA de toque)" : "",
@@ -58,26 +64,26 @@ function spellLine(c, s) {
     .filter(Boolean)
     .join(" · ");
 }
-function proibList(c) {
+export function proibList(c) {
   return String(c.proibidas || "")
     .split(",")
     .map((x) => x.trim())
     .filter((x) => SCHOOLS.includes(x));
 }
-function spell(c, id) {
+export function spell(c, id) {
   return c.grimorio.find((s) => s.id === id);
 }
-function dc(c, s) {
+export function dc(c, s) {
   return 10 + s.nivel + mod(at(c, spellAttr(c))) + (c.escola && s.escola === c.escola ? +c.cdEscola || 0 : 0);
 }
-function rangeTxt(c, a) {
+export function rangeTxt(c, a) {
   const L = casterLevel(c) || lvlOf(c);
   if (a === "curto") return `curto (${String(7.5 + 1.5 * Math.floor(L / 2)).replace(".", ",")} m)`;
   if (a === "médio") return `médio (${30 + 3 * L} m)`;
   if (a === "longo") return `longo (${120 + 12 * L} m)`;
   return a;
 }
-function saves(c) {
+export function saves(c) {
   const r = c.ef.resistencia ? 1 : 0;
   const gr = c.classeKey === "paladino" && lvlOf(c) >= 2 ? Math.max(0, mod(at(c, "car"))) : 0;
   const fu = c.ef.furia && c.classeKey === "barbaro" ? 2 : 0;
@@ -87,10 +93,10 @@ function saves(c) {
     von: saveBase(c, "von") + mod(at(c, "sab")) + (+c.outros.von || 0) + r + gr + fu,
   };
 }
-function bba(c) {
+export function bba(c) {
   return babOf(c) + (+c.outros.bba || 0);
 }
-function ac(c) {
+export function ac(c) {
   const d = mod(at(c, "des")),
     sz = sizeAC(c.tamanho);
   const arm = Math.max(+c.ca.armadura || 0, c.ef.armaduraArcana ? 4 : 0),
@@ -105,13 +111,13 @@ function ac(c) {
     surpresa: 10 + arm + esc_ + Math.min(d, 0) + sz + nat + def + out,
   };
 }
-const WTYPE = {
+export const WTYPE = {
   corpo: "Corpo a corpo",
   acuidade: "Corpo a corpo com Acuidade (Des)",
   arremesso: "Arremesso",
   distancia: "Distância (besta, arco, funda)",
 };
-function atkParts(c, a) {
+export function atkParts(c, a) {
   const ab = a.tipo === "corpo" ? ["For", mod(at(c, "for"))] : ["Des", mod(at(c, "des"))];
   const parts = [["BBA", bba(c)], ab];
   const sz = sizeAC(c.tamanho);
@@ -119,28 +125,28 @@ function atkParts(c, a) {
   if (+a.acertoOutros) parts.push(["outros", +a.acertoOutros]);
   return parts;
 }
-function atkBonus(c, a) {
+export function atkBonus(c, a) {
   return atkParts(c, a).reduce((t, p) => t + p[1], 0);
 }
-function dmgParts(c, a) {
+export function dmgParts(c, a) {
   const parts = [];
   if (a.tipo === "corpo" || a.tipo === "acuidade" || a.tipo === "arremesso") parts.push(["For", mod(at(c, "for"))]);
   if (+a.danoOutros) parts.push(["outros", +a.danoOutros]);
   return parts;
 }
-function dmgMod(c, a) {
+export function dmgMod(c, a) {
   return dmgParts(c, a).reduce((t, p) => t + p[1], 0);
 }
-function dmgTxt(c, a) {
+export function dmgTxt(c, a) {
   const m = dmgMod(c, a);
   return (a.dado || "—") + (m ? (m > 0 ? " + " + m : " − " + Math.abs(m)) : "");
 }
-const AMMO = {
+export const AMMO = {
   virotes: { nome: "Virotes", re: /virote|bolt/i, peso: 0.05 },
   flechas: { nome: "Flechas", re: /flecha|arrow/i, peso: 0.075 },
   balas: { nome: "Balas de funda", re: /bala|bullet/i, peso: 0.25 },
 };
-function ammoFor(c, w) {
+export function ammoFor(c, w) {
   if (!w || w.tipo !== "distancia") return null;
   const n = String(w.nome || "").toLowerCase();
   const kind = /besta|crossbow/.test(n)
@@ -154,8 +160,8 @@ function ammoFor(c, w) {
   const idx = (c.itens || []).findIndex((i) => AMMO[kind].re.test(i.nome || ""));
   return { kind, idx, qtd: idx >= 0 ? +c.itens[idx].qtd || 0 : 0 };
 }
-const partsTxt = (ps) => ps.map(([n, v]) => n + " " + sg(v)).join(" · ");
-function skill(c, k) {
+export const partsTxt = (ps) => ps.map(([n, v]) => n + " " + sg(v)).join(" · ");
+export function skill(c, k) {
   const d = SK[k],
     s = c.pericias[k] || {};
   const r = Math.floor(+s.grad || 0);
@@ -173,7 +179,7 @@ function skill(c, k) {
     usable: !d.trained || r > 0,
   };
 }
-function skillPts(c) {
+export function skillPts(c) {
   const L = lvlOf(c),
     per = Math.max(1, cls(c).pts + mod(c.attr.int));
   const avail = per * 4 + per * (L - 1) + (+c.pontosExtras || 0);
@@ -185,7 +191,7 @@ function skillPts(c) {
   }
   return { avail, spent };
 }
-function hpSuggest(c) {
+export function hpSuggest(c) {
   const L = lvlOf(c),
     cm = mod(c.attr.con),
     dv = cls(c).dv;
@@ -193,7 +199,7 @@ function hpSuggest(c) {
   for (let i = 2; i <= L; i++) h += Math.max(1, dv / 2 + 1 + cm);
   return h;
 }
-function lightLoadKg(c) {
+export function lightLoadKg(c) {
   const f = clamp(+c.attr.for || 0, 1, 29);
   let lb = LIGHT_LB[f];
   if (c.tamanho === "Pequeno") lb *= 0.75;

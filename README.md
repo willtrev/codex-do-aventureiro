@@ -30,14 +30,23 @@ Ficha de personagem interativa para **D&D 3.5**. Faz os cálculos da ficha e aco
 
 ## Como usar
 
-Abra o `index.html` em qualquer navegador moderno. Funciona até direto do disco (`file://`).
+O app usa módulos JavaScript (`import`/`export`) e o [Vite](https://vite.dev) para desenvolver e gerar o site. Precisa do [Node.js](https://nodejs.org) 20.19 ou mais novo.
+
+```bash
+npm install        # uma vez, instala o Vite e o Prettier
+npm run dev        # abre o app em http://localhost:5173 e recarrega ao salvar
+npm run build      # gera o site final otimizado em dist/
+npm run preview    # testa o conteúdo de dist/ como ficaria publicado
+```
+
+O `index.html` não abre mais com dois cliques (`file://`): navegadores não carregam módulos direto do disco. Use `npm run dev`.
 
 ### Hospedar de graça
 
-O site é estático, sem build, então qualquer hospedagem de arquivos serve.
+O site final (pasta `dist/`, gerada por `npm run build`) é estático, então qualquer hospedagem de arquivos serve.
 
-- **GitHub Pages:** só é gratuito com o repositório **público**. Em *Settings → Pages*, escolha *Deploy from a branch*, a branch `main` e a pasta `/ (root)`.
-- **Cloudflare Pages:** gratuito também com o repositório **privado**. Em *Workers & Pages → Create → Pages → Connect to Git*, escolha o repositório, deixe o *Build command* vazio e use `/` como *Build output directory*. Cada `git push` na `main` atualiza o site.
+- **Cloudflare Pages:** gratuito também com o repositório **privado**. Em *Workers & Pages → Create → Pages → Connect to Git*, escolha o repositório e use *Build command* `npm run build` e *Build output directory* `dist`. Cada `git push` atualiza o site, e cada branch ganha um endereço de prévia próprio.
+- **GitHub Pages:** só é gratuito com o repositório **público**, e precisa de uma *GitHub Action* que rode `npm run build` e publique `dist/` (*Settings → Pages → Source: GitHub Actions*, modelo "Static HTML" adaptado).
 
 Escolha o endereço definitivo antes de as pessoas começarem a usar: os dados ficam presos ao endereço do site (veja abaixo).
 
@@ -61,15 +70,17 @@ Para se proteger, use **Notas e backup → Copiar backup** depois de cada sessã
 
 O modelo oficial da ficha não está no repositório, porque é material da Wizards of the Coast liberado só para uso pessoal. Para exportar, há duas opções:
 
-- coloque o seu `ficha.pdf` (a ficha editável de 4 páginas) na mesma pasta do `index.html`; ou
+- coloque o seu `ficha.pdf` (a ficha editável de 4 páginas) em `public/ficha.pdf`; ou
 - na primeira exportação, escolha o PDF quando o app pedir.
 
 ## Estrutura do código
 
-Os arquivos são `<script>` comuns, carregados em ordem pelo `index.html`, e compartilham o escopo global. Não há módulos nem etapa de build.
+Cada arquivo é um módulo ES: declara no topo, com `import`, o que usa de outros arquivos e marca com `export` o que oferece. O `index.html` carrega só o `js/app.js`, que puxa o resto. Os imports são somente leitura: para mudar uma variável de outro arquivo, use a função `set<Nome>()` que ele exporta (ex.: `setState`, `setTheme`).
 
 ```
-index.html                 página e ordem de carregamento dos scripts
+index.html                 página; carrega js/app.js
+package.json, vite.config.js   scripts (dev, build) e configuração do Vite
+public/                    arquivos copiados como estão para o site (ex.: ficha.pdf, fora do git)
 css/estilo.css             visual (Flat Design, claro/escuro)
 js/
   util.js                  funções pequenas (mod, sg, esc, clone…)
@@ -119,7 +130,7 @@ Os arquivos `js/dados/srd-*.js` vêm do banco SQLite do SRD 3.5 do Andargor (`sr
 
 ```bash
 unzip srd35-db-SQLite-v1.3.zip -d srd
-python3 tools/gerar_dados.py srd/dnd35.db
+python3 tools/gerar_dados.py srd/dnd35.db   # ou: npm run dados -- srd/dnd35.db
 ```
 
 O zip e o `.db` estão no `.gitignore`.
@@ -141,7 +152,7 @@ As mensagens seguem o [Conventional Commits](https://www.conventionalcommits.org
 | `refactor` | reorganiza o código sem mudar o comportamento |
 | `chore` | manutenção: dados do SRD gerados de novo, configuração, `.gitignore` |
 
-Para formatar o código antes do commit: `npx prettier --write .` (as regras estão em `.prettierrc.json`; os `srd-*.js` gerados ficam de fora).
+Para formatar o código antes do commit: `npm run formatar` (as regras estão em `.prettierrc.json`; os `srd-*.js` gerados ficam de fora).
 
 ## Licença e aviso
 

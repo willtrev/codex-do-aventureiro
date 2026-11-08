@@ -1,5 +1,9 @@
 /* ================= Personagens de teste (nível 1, compra de 25 pontos) ================= */
-function mkChar(k, o) {
+import { CAT } from "../dados/catalogo.js";
+import { CLASSES } from "../regras/classes.js";
+import { blankChar, spellFromCat } from "./modelos.js";
+
+export function mkChar(k, o) {
   const c = blankChar();
   c.classeKey = k;
   c.classe = CLASSES[k].nome;
@@ -46,25 +50,25 @@ function mkChar(k, o) {
   c.testChar = true;
   return c;
 }
-const T_HUM = [["Humano", "Talento extra no 1º nível e +1 ponto de perícia por nível (+4 no 1º)."]];
-const T_ELF = [
+export const T_HUM = [["Humano", "Talento extra no 1º nível e +1 ponto de perícia por nível (+4 no 1º)."]];
+export const T_ELF = [
   ["Imune a sono mágico", "+2 nos testes de resistência contra encantamentos"],
   ["Visão na penumbra", ""],
   ["Sentidos élficos", "+2 em Ouvir, Procurar e Observar"],
 ];
-const T_ANAO = [
+export const T_ANAO = [
   ["Visão no escuro", "18 m"],
   ["Estabilidade", "+4 contra ser derrubado ou empurrado"],
   ["Resistência anã", "+2 contra veneno, magias e efeitos similares a magia"],
   ["Ódio", "+1 de ataque contra orcs e goblinoides; +4 de esquiva na CA contra gigantes"],
   ["Deslocamento", "6 m, mesmo com armadura média ou pesada"],
 ];
-const BASIC = [
+export const BASIC = [
   ["Mochila", 1, 1],
   ["Cantil", 1, 2],
   ["Rações de viagem (dias)", 2, 0.5],
 ];
-function testChars() {
+export function testChars() {
   return [
     mkChar("barbaro", {
       base: {

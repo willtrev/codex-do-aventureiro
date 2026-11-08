@@ -1,5 +1,7 @@
 /* ================= Tendências ================= */
-const ALIGNS = [
+import { CLASSES } from "./classes.js";
+
+export const ALIGNS = [
   ["LB", "Leal e Bom"],
   ["LN", "Leal e Neutro"],
   ["LM", "Leal e Mau"],
@@ -10,7 +12,7 @@ const ALIGNS = [
   ["CN", "Caótico e Neutro"],
   ["CM", "Caótico e Mau"],
 ];
-function alignCode(t) {
+export function alignCode(t) {
   t = String(t || "")
     .toLowerCase()
     .normalize("NFD")
@@ -23,14 +25,14 @@ function alignCode(t) {
   const ge = /bom|good/.test(t) ? "B" : /mau|mal|evil/.test(t) ? "M" : "N";
   return lc === "N" && ge === "N" ? "N" : lc + ge;
 }
-const alignName = (k) => (ALIGNS.find((a) => a[0] === k) || [, ""])[1];
-const isLawful = (k) => k[0] === "L",
+export const alignName = (k) => (ALIGNS.find((a) => a[0] === k) || [, ""])[1];
+export const isLawful = (k) => k[0] === "L",
   isChaotic = (k) => k[0] === "C",
   isGood = (k) => k.length === 2 && k[1] === "B",
   isEvil = (k) => k.length === 2 && k[1] === "M";
-const geNeutral = (k) => !isGood(k) && !isEvil(k);
+export const geNeutral = (k) => !isGood(k) && !isEvil(k);
 /* motivo para não poder usar a tendência ("" = permitida) */
-function alignBlock(classKey, k) {
+export function alignBlock(classKey, k) {
   if ((classKey === "barbaro" || classKey === "bardo") && isLawful(k))
     return CLASSES[classKey].nome + " não pode ser leal.";
   if (classKey === "monge" && !isLawful(k)) return "Monge precisa ser leal.";
@@ -38,7 +40,7 @@ function alignBlock(classKey, k) {
   if (classKey === "druida" && !k.includes("N")) return "Druida precisa ser neutro em pelo menos um eixo.";
   return "";
 }
-function alignNotes(c) {
+export function alignNotes(c) {
   const k = alignCode(c.tendencia),
     out = [];
   const ck = c.classeKey;

@@ -1,6 +1,11 @@
-# Ficha oficial da WotC (uso pessoal), não vai para o repositório
+# Ficha oficial da WotC (uso pessoal), não vai para o repositório.
+# Coloque a sua em public/ficha.pdf para a exportação em PDF achar o modelo.
 ficha.pdf
+public/ficha.pdf
 # Banco do SRD baixado do Andargor (só é usado para gerar js/dados/srd-*.js)
 srd35-db-*.zip
 *.db
 __pycache__/
+# Dependências e build
+node_modules/
+dist/

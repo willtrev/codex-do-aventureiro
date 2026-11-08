@@ -1,6 +1,5 @@
 // Gerado por tools/gerar_dados.py a partir do SRD 3.5 (Open Game License). Não edite à mão.
-window.SRD = window.SRD || {};
-window.SRD.talentos = [
+export const SRD_TALENTOS = [
  {
   "nome": "Acrobatic",
   "tipo": "General",

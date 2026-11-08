@@ -2,7 +2,7 @@
   Traduções para português dos dados do SRD 3.5 (que estão em inglês).
   Para corrigir um nome, edite aqui; os arquivos js/dados/srd-*.js são gerados e não devem ser editados.
 */
-const TR_ESCOLAS = {
+export const TR_ESCOLAS = {
   Abjuration: "Abjuração",
   Conjuration: "Conjuração",
   Divination: "Adivinhação",
@@ -13,7 +13,7 @@ const TR_ESCOLAS = {
   Transmutation: "Transmutação",
   Universal: "Universal",
 };
-const TR_SUBESCOLAS = {
+export const TR_SUBESCOLAS = {
   Calling: "Chamado",
   Creation: "Criação",
   Healing: "Cura",
@@ -28,7 +28,7 @@ const TR_SUBESCOLAS = {
   Phantasm: "Fantasma",
   Shadow: "Sombra",
 };
-const TR_DESCRITORES = {
+export const TR_DESCRITORES = {
   Acid: "Ácido",
   Air: "Ar",
   Chaotic: "Caos",
@@ -50,7 +50,7 @@ const TR_DESCRITORES = {
   Water: "Água",
 };
 /* Nome da classe no SRD -> chave usada no app (js/regras/classes.js) */
-const TR_CLASSES = {
+export const TR_CLASSES = {
   Barbarian: "barbaro",
   Bard: "bardo",
   Cleric: "clerigo",
@@ -64,7 +64,7 @@ const TR_CLASSES = {
   Wizard: "mago",
 };
 /* Nome da perícia no SRD -> chave da perícia no app (js/regras/basicas.js) */
-const TR_PERICIAS = {
+export const TR_PERICIAS = {
   Appraise: "avaliacao",
   Balance: "equilibrio",
   Bluff: "blefar",
@@ -111,7 +111,7 @@ const TR_PERICIAS = {
   "Use Rope": "cordas",
 };
 /* Domínio no SRD -> nome em português (js/regras/dominios.js usa os nomes em português) */
-const TR_DOMINIOS = {
+export const TR_DOMINIOS = {
   Air: "Ar",
   Animal: "Animal",
   Chaos: "Caos",
@@ -135,7 +135,7 @@ const TR_DOMINIOS = {
   War: "Guerra",
   Water: "Água",
 };
-const TR_TALENTOS = {
+export const TR_TALENTOS = {
   Acrobatic: "Acrobático",
   Agile: "Ágil",
   Alertness: "Prontidão",
@@ -247,7 +247,7 @@ const TR_TALENTOS = {
   "Whirlwind Attack": "Ataque Giratório",
   "Widen Spell": "Alargar Magia",
 };
-const TR_EQUIPAMENTO = {
+export const TR_EQUIPAMENTO = {
   "Armor spikes": "Cravos de armadura",
   "Banded mail": "Loriga segmentada",
   Breastplate: "Peitoral de aço",

@@ -1,6 +1,5 @@
 // Gerado por tools/gerar_dados.py a partir do SRD 3.5 (Open Game License). Não edite à mão.
-window.SRD = window.SRD || {};
-window.SRD.dominios = [
+export const SRD_DOMINIOS = [
  {
   "nome": "Air",
   "poder": "Turn or destroy earth creatures as a good cleric turns undead. Rebuke, command, or bolster air creatures as an evil cleric rebukes undead. Use these abilities a total number of times per day equal to 3 + your Charisma modifier. This granted power is a supernatural ability.",

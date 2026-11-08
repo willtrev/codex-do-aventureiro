@@ -1,14 +1,23 @@
 /* ================= Modal ================= */
-function modal(html) {
+import { esc, sg } from "../util.js";
+import { SCHOOLS } from "../regras/basicas.js";
+import { TR_DOMINIOS } from "../dados/traducoes.js";
+import { CAT, SRD_MAGIA_POR_EN, temTeste } from "../dados/catalogo.js";
+import { ATTR_NAME, CLASSES, CLASS_ORDER, cls } from "../regras/classes.js";
+import { blankChar } from "../personagens/modelos.js";
+import { dc, hpSuggest, isSpont, partsTxt, rangeTxt, spellAtk } from "../regras/calculos.js";
+import { idioma, nomeDe, nomeHTML } from "./idioma.js";
+
+export function modal(html) {
   document.getElementById("modal").innerHTML =
     `<div class="modal-bg" data-a="closebg"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
   const f = document.querySelector(".modal button, .modal input");
   if (f) f.focus();
 }
-function closeModal() {
+export function closeModal() {
   document.getElementById("modal").innerHTML = "";
 }
-const LISTA_NOME = {
+export const LISTA_NOME = {
   mago: "Mago/Feiticeiro",
   clerigo: "Clérigo",
   druida: "Druida",
@@ -16,23 +25,23 @@ const LISTA_NOME = {
   ranger: "Ranger",
   paladino: "Paladino",
 };
-const LISTA_EN = { mago: "Sor/Wiz", clerigo: "Clr", druida: "Drd", bardo: "Brd", ranger: "Rgr", paladino: "Pal" };
+export const LISTA_EN = { mago: "Sor/Wiz", clerigo: "Clr", druida: "Drd", bardo: "Brd", ranger: "Rgr", paladino: "Pal" };
 /** Registro original do SRD para uma magia (ou null para magias personalizadas). */
-const srdDe = (s) => (s && s.en ? SRD_MAGIA_POR_EN.get(String(s.en).toLowerCase()) || null : null);
+export const srdDe = (s) => (s && s.en ? SRD_MAGIA_POR_EN.get(String(s.en).toLowerCase()) || null : null);
 /** Texto do SRD em parágrafos HTML. */
-const paragrafos = (t) =>
+export const paragrafos = (t) =>
   String(t || "")
     .split(/\n+/)
     .filter((x) => x.trim())
     .map((x) => `<p style="margin:0 0 8px;line-height:1.5">${esc(x)}</p>`)
     .join("");
-function listasTxt(m) {
+export function listasTxt(m) {
   const en = idioma === "en";
   const cl = Object.entries(m.listas).map(([k, n]) => `${en ? LISTA_EN[k] : LISTA_NOME[k]} ${n}`);
   const dm = Object.entries(m.dominios).map(([k, n]) => `${en ? k : TR_DOMINIOS[k] || k} ${n}`);
   return [...cl, ...dm].join(", ");
 }
-function spellInfo(c, s) {
+export function spellInfo(c, s) {
   const m = srdDe(s);
   const en = idioma === "en" && m;
   const atk = spellAtk(c, s);
@@ -67,9 +76,9 @@ function spellInfo(c, s) {
       : ""
   }`);
 }
-let buscaMagia = "";
+export let buscaMagia = "";
 /** Filtra as linhas do catálogo sem redesenhar a janela. */
-function filtrarCatalogo() {
+export function filtrarCatalogo() {
   const q = buscaMagia.trim().toLowerCase();
   let n = 0;
   document.querySelectorAll("#catlist .spellrow").forEach((r) => {
@@ -81,7 +90,7 @@ function filtrarCatalogo() {
   const info = document.getElementById("catcount");
   if (info) info.textContent = `${n} magia${n === 1 ? "" : "s"}`;
 }
-function addSpellModal(c) {
+export function addSpellModal(c) {
   const have = new Set(c.grimorio.map((s) => (s.en || s.nome).toLowerCase()));
   const lk = (cls(c).magia || {}).lista || "mago";
   const rows = CAT.filter((s) => !have.has((s.en || s.nome).toLowerCase()) && s.listas[lk] !== undefined)
@@ -107,7 +116,7 @@ function addSpellModal(c) {
   const bi = document.getElementById("busca_magia");
   if (bi) bi.focus();
 }
-function restModal(c) {
+export function restModal(c) {
   modal(`<h2 style="font-size:18px;color:var(--ink)">Descanso de 8 horas</h2>
   <label class="row"><input type="checkbox" id="r_slots" checked> Recuperar magias e usos diários de habilidades${isSpont(c) ? "" : " (mantém as mesmas magias preparadas)"}</label>
   <label class="row"><input type="checkbox" id="r_hp" checked> Curar ${c.nivel} PV (cura natural: 1 por nível)</label>
@@ -115,7 +124,7 @@ function restModal(c) {
   <label class="row"><input type="checkbox" id="r_ef"> Encerrar efeitos ativos</label>
   <div class="row"><button class="btn pri" data-a="dorest">Descansar</button><button class="btn" data-a="close">Cancelar</button></div>`);
 }
-function newCharModal() {
+export function newCharModal() {
   modal(`<div class="row"><h2 style="font-size:18px;color:var(--ink)">Novo personagem</h2><span class="spacer"></span><button class="btn sm ghost" data-a="close">Fechar</button></div>
   <label class="f" for="nc_nome">Nome<input id="nc_nome" type="text" placeholder="Nome do personagem"></label>
   <p class="small muted" style="margin:0">Escolha a classe. Ela define a ficha: dado de vida, bônus base de ataque, testes de resistência, perícias de classe, magias e habilidades.</p>
@@ -125,7 +134,7 @@ function newCharModal() {
     return `<button class="btn" data-a="pickclass" data-k="${k}" style="justify-content:space-between;text-align:left;padding:10px 12px"><span><b>${x.nome}</b><br><span class="small muted" style="font-weight:400">d${x.dv} · BBA ${x.bab === "boa" ? "bom" : x.bab === "media" ? "médio" : "fraco"} · TR bons: ${x.tr.map((t) => ({ fort: "Fortitude", ref: "Reflexos", von: "Vontade" })[t]).join(", ")} · ${x.pts} perícias/nível · ${{ barbaro: "não leal", bardo: "não leal", monge: "só leal", paladino: "só Leal e Bom", druida: "neutro em um eixo" }[k] || "qualquer tendência"}${m ? ` · magias ${m.tipo === "espontanea" ? "espontâneas" : "preparadas"} (${ATTR_NAME[m.attr]})${m.desde ? " a partir do " + m.desde + "º" : ""}` : ""}</span></span></button>`;
   }).join("")}</div>`);
 }
-function newCharOf(k) {
+export function newCharOf(k) {
   const n = blankChar();
   n.classeKey = k;
   n.classe = CLASSES[k].nome;
@@ -142,8 +151,13 @@ function newCharOf(k) {
           : "Neutro";
   return n;
 }
-function confirmModal(text, action) {
+export function confirmModal(text, action) {
   modal(
     `<p style="margin:0">${esc(text)}</p><div class="row"><button class="btn danger" data-a="${action}">Confirmar</button><button class="btn" data-a="close">Cancelar</button></div>`
   );
+}
+
+/* Funções para outros arquivos alterarem as variáveis deste (imports são somente leitura). */
+export function setBuscaMagia(v) {
+  buscaMagia = v;
 }

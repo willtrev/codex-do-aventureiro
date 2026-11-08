@@ -4,7 +4,7 @@
   - nome: nome em português mostrado no app
   - alvo e descricao (opcionais): resumo em português; sem eles, o app mostra o texto do SRD em inglês.
 */
-const TR_MAGIAS = {
+export const TR_MAGIAS = {
   "Acid Arrow": {
     nome: "Flecha Ácida de Melf",
     alvo: "1 flecha de ácido",

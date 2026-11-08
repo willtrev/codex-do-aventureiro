@@ -1,19 +1,23 @@
 /* ================= Armazenamento ================= */
+import { clone, esc } from "../util.js";
+import { migrate } from "./migracoes.js";
+import { render } from "../telas/topo.js";
+
 /* state.chars: personagens deste usuário. state.campanhas: campanhas do hub do mestre,
    cada uma com cópias das fichas dos jogadores (ver js/telas/mestre.js). */
-let state = { chars: {}, active: null, campanhas: {}, campanhaAtiva: null };
-let db = null,
+export let state = { chars: {}, active: null, campanhas: {}, campanhaAtiva: null };
+export let db = null,
   uid = null,
   storeMode = "local",
   statusTxt = "Carregando…",
   statusCls = "pend";
-const LSKEY = "grimorio-volis-v1";
-function saveLocal() {
+export const LSKEY = "grimorio-volis-v1";
+export function saveLocal() {
   try {
     localStorage.setItem(LSKEY, JSON.stringify(state));
   } catch (e) {}
 }
-function loadLocal() {
+export function loadLocal() {
   try {
     const s = JSON.parse(localStorage.getItem(LSKEY) || "null");
     if (s && s.chars) {
@@ -23,13 +27,13 @@ function loadLocal() {
   } catch (e) {}
   return null;
 }
-function col() {
+export function col() {
   return db.collection("data/users/" + uid);
 }
-const dirty = new Set();
-let saveTimer = null,
+export const dirty = new Set();
+export let saveTimer = null,
   writing = false;
-function touch(id) {
+export function touch(id) {
   dirty.add(id || state.active);
   saveLocal();
   clearTimeout(saveTimer);
@@ -38,7 +42,7 @@ function touch(id) {
     saveTimer = setTimeout(flush, 700);
   } else setStatus("Salvo só neste navegador", "pend");
 }
-async function flush() {
+export async function flush() {
   if (writing) {
     saveTimer = setTimeout(flush, 400);
     return;
@@ -87,17 +91,17 @@ async function flush() {
     writing = false;
   }
 }
-function setStatus(t, c) {
+export function setStatus(t, c) {
   statusTxt = t;
   statusCls = c;
   const el = document.getElementById("st");
   if (el) el.innerHTML = statusHTML();
 }
-function statusHTML() {
+export function statusHTML() {
   return `<span class="dot ${statusCls === "ok" ? "ok" : statusCls === "err" ? "err" : "pend"}"></span>${esc(statusTxt)}`;
 }
 
-async function initCloud() {
+export async function initCloud() {
   if (!window.claude || typeof window.claude.use !== "function") {
     setStatus("Salvo só neste navegador", "pend");
     return;
@@ -168,4 +172,9 @@ async function initCloud() {
       "err"
     );
   }
+}
+
+/* Funções para outros arquivos alterarem as variáveis deste (imports são somente leitura). */
+export function setState(v) {
+  state = v;
 }

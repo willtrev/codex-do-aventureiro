@@ -5,8 +5,8 @@ Uso:
     python tools/gerar_dados.py caminho/para/dnd35.db
 
 Baixe o banco em https://www.andargor.com/files/srd35-db-SQLite-v1.3.zip (arquivo dnd35.db).
-Os arquivos saem em js/dados/srd-*.js. Cada um é um JSON atribuído a window.SRD.<nome>,
-para funcionar até abrindo o index.html direto do disco (sem servidor).
+Os arquivos saem em js/dados/srd-*.js. Cada um é um módulo ES que exporta SRD_<NOME> (ex.: SRD_MAGIAS),
+importado pelos outros arquivos do app (js/dados/catalogo.js, js/regras/classes.js...).
 """
 import html
 import json
@@ -97,7 +97,7 @@ def gravar(nome, dados):
     corpo = json.dumps(dados, ensure_ascii=False, indent=1)
     arq.write_text(
         "// Gerado por tools/gerar_dados.py a partir do SRD 3.5 (Open Game License). Não edite à mão.\n"
-        f"window.SRD = window.SRD || {{}};\nwindow.SRD.{nome} = {corpo};\n", encoding="utf-8")
+        f"export const SRD_{nome.upper()} = {corpo};\n", encoding="utf-8")
     print(f"{arq.relative_to(RAIZ)}: {len(dados)} registros")
 
 

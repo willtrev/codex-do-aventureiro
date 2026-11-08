@@ -1,6 +1,5 @@
 // Gerado por tools/gerar_dados.py a partir do SRD 3.5 (Open Game License). Não edite à mão.
-window.SRD = window.SRD || {};
-window.SRD.equipamento = [
+export const SRD_EQUIPAMENTO = [
  {
   "nome": "Armor spikes",
   "familia": "Armor and Shields",

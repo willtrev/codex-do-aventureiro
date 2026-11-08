@@ -1,11 +1,14 @@
 /* ================= Tela inicial =================
    Aparece quando a pessoa ainda não tem nenhum personagem
    (primeiro acesso, ou depois de excluir todos). */
+import { statusHTML, storeMode } from "../armazenamento/armazenamento.js";
+import { theme } from "../interface/tema.js";
+import { IDIOMAS, idioma } from "../interface/idioma.js";
 
 /** true enquanto a conta do Claude ainda está carregando os personagens salvos. */
-let nuvemPendente = !!(window.claude && typeof window.claude.use === "function");
+export let nuvemPendente = !!(window.claude && typeof window.claude.use === "function");
 
-function vInicio() {
+export function vInicio() {
   const toggles = `<span class="theme" role="group" aria-label="Idioma do conteúdo">${IDIOMAS.map(
     ([k, n]) => `<button data-a="lang" data-l="${k}" aria-pressed="${idioma === k}">${n}</button>`
   ).join("")}</span>
@@ -57,4 +60,9 @@ function vInicio() {
     }</p>
   </section>
   </div>`;
+}
+
+/* Funções para outros arquivos alterarem as variáveis deste (imports são somente leitura). */
+export function setNuvemPendente(v) {
+  nuvemPendente = v;
 }

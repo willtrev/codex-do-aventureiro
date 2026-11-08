@@ -2,10 +2,12 @@
   Tradução automática dos campos de regra das magias do SRD (execução, alcance, duração, teste etc.).
   Usa frases conhecidas primeiro e, para o resto, troca palavra por palavra.
 */
-const pesParaMetros = (pes) => String(Math.round(pes * 0.3 * 10) / 10).replace(".", ",");
+import { TR_DESCRITORES } from "../dados/traducoes.js";
+
+export const pesParaMetros = (pes) => String(Math.round(pes * 0.3 * 10) / 10).replace(".", ",");
 
 /* Trocas comuns aplicadas no fim de todos os campos */
-const TR_PALAVRAS = [
+export const TR_PALAVRAS = [
   [/;\s*see text/gi, "; ver texto"],
   [/\bsee text\b/gi, "ver texto"],
   [/\(see text\)/gi, "(ver texto)"],
@@ -60,12 +62,12 @@ const TR_PALAVRAS = [
   [/\bper\b/g, "por"],
   [/\bthen\b/g, "depois"],
 ];
-function trocarPalavras(t) {
+export function trocarPalavras(t) {
   let s = String(t);
   for (const [re, novo] of TR_PALAVRAS) s = s.replace(re, novo);
   return s;
 }
-function trExecucao(t) {
+export function trExecucao(t) {
   if (!t) return "padrão";
   return trocarPalavras(
     String(t)
@@ -74,7 +76,7 @@ function trExecucao(t) {
       .replace(/\b(\d+) full rounds?\b/gi, (m, n) => (n === "1" ? "1 rodada completa" : `${n} rodadas completas`))
   );
 }
-function trAlcance(t) {
+export function trAlcance(t) {
   if (!t) return "—";
   return trocarPalavras(
     String(t)
@@ -84,8 +86,8 @@ function trAlcance(t) {
       .replace(/\bclose \(25 ft\. \+ 5 ft\.\/2 levels\)/gi, "curto")
   );
 }
-const trDuracao = (t) => (t ? trocarPalavras(t) : "—");
-const TR_TESTES = [
+export const trDuracao = (t) => (t ? trocarPalavras(t) : "—");
+export const TR_TESTES = [
   ["Will negates (harmless, object)", "Vontade evita (aliado ou objeto pode aceitar sem teste)"],
   ["Will negates (harmless)", "Vontade evita (aliado pode aceitar sem teste)"],
   ["Will negates (object)", "Vontade evita, se o objeto for de alguém"],
@@ -108,13 +110,13 @@ const TR_TESTES = [
   ["None", "nenhum"],
   ["No", "nenhum"],
 ];
-function trTeste(t) {
+export function trTeste(t) {
   if (!t) return "nenhum";
   let s = String(t);
   for (const [en, pt] of TR_TESTES) s = s.split(en).join(pt);
   return trocarPalavras(s);
 }
-function trRM(t) {
+export function trRM(t) {
   if (!t) return "—";
   return trocarPalavras(
     String(t)
@@ -125,7 +127,7 @@ function trRM(t) {
       .replace(/object/g, "objeto")
   );
 }
-function trComponentes(t) {
+export function trComponentes(t) {
   if (!t) return "—";
   if (t.length > 60) return t; // texto longo e raro (ex.: Binding): fica no original
   return trocarPalavras(
@@ -135,7 +137,7 @@ function trComponentes(t) {
       .replace(/\(Brd only\)/g, "(só bardo)")
   );
 }
-function trDescritores(t) {
+export function trDescritores(t) {
   return t
     ? String(t)
         .split(/,\s*/)

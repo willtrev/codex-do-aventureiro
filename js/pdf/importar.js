@@ -8,12 +8,48 @@
      3. modal de revisão        → a pessoa confere e confirma
 
    Os números dos campos são os mesmos de js/pdf/exportar.js (SHEET_ROWS, SPEC_FIELD...). */
+import { clamp, clone, esc, mod, sg, uidGen } from "../util.js";
+import { SCHOOLS, SK } from "../regras/basicas.js";
+import { TR_DOMINIOS, TR_ESCOLAS } from "../dados/traducoes.js";
+import { trAlcance } from "../regras/traduzir.js";
+import { CAT, magiaPorNomeSRD } from "../dados/catalogo.js";
+import { CLASSES, CLASS_ORDER, at, classFeatures, cls } from "../regras/classes.js";
+import { blankChar } from "../personagens/modelos.js";
+import { ALIGNS, alignBlock, alignCode } from "../regras/tendencias.js";
+import { DOMAINS, syncDomainSpells } from "../regras/dominios.js";
+import {
+  ac,
+  atkBonus,
+  bba,
+  dmgMod,
+  ensurePrep,
+  hpSuggest,
+  isSpont,
+  saves,
+  skill,
+  skillPts,
+} from "../regras/calculos.js";
+import { state, touch } from "../armazenamento/armazenamento.js";
+import { idioma } from "../interface/idioma.js";
+import { irPara } from "../interface/estado.js";
+import { render } from "../telas/topo.js";
+import { adicionarNaCampanha } from "../telas/mestre.js";
+import { KN_SHORT, SHEET_ROWS, SPEC_FIELD, loadPdfLib } from "./exportar.js";
+import {
+  camposDeTextoLivre,
+  camposPorPosicao,
+  extrairTextoPdf,
+  linhasDeOutroFormulario,
+  linhasDoTexto,
+} from "./ler-texto.js";
+import { closeModal, modal } from "../interface/modais.js";
+import { TALENTOS_SRD } from "../interface/srd-escolha.js";
 
 /* ---------- Leitura do PDF ---------- */
 
 /** Campos do personagem que, se vazios, indicam que nada foi lido. */
-const CAMPOS_ESSENCIAIS = [7, 8, 9, 13, 15, 17, 19, 21, 23, 47];
-const temDados = (F) =>
+export const CAMPOS_ESSENCIAIS = [7, 8, 9, 13, 15, 17, 19, 21, 23, 47];
+export const temDados = (F) =>
   CAMPOS_ESSENCIAIS.some((n) => String(F["untitled" + n] ?? "").trim()) || (F.__magias || []).length;
 
 /**
@@ -21,7 +57,7 @@ const temDados = (F) =>
  * F.__origem diz como foi lido: "campos" (ficha editável), "posicao" (ficha oficial achatada)
  * ou "texto" (outro PDF, lido pelos rótulos).
  */
-async function lerPdfFicha(bytes) {
+export async function lerPdfFicha(bytes) {
   const PDFLib = await loadPdfLib();
   let pdf;
   try {
@@ -69,7 +105,7 @@ async function lerPdfFicha(bytes) {
 
 /* ---------- Conversões de texto ---------- */
 
-const normTxt = (s) =>
+export const normTxt = (s) =>
   String(s ?? "")
     .toLowerCase()
     .normalize("NFD")
@@ -78,7 +114,7 @@ const normTxt = (s) =>
     .replace(/\s+/g, " ")
     .trim();
 /** "+2" → 2; "−1" → -1; "2,5" → 2.5; "" ou texto → NaN. */
-function numPdf(s) {
+export function numPdf(s) {
   const t = String(s ?? "")
     .replace(/[−–—]/g, "-")
     .replace(/\s/g, "");
@@ -86,20 +122,20 @@ function numPdf(s) {
   return m ? +m[0].replace(",", ".") : NaN;
 }
 /** "1.000" ou "1,000" → 1000 (XP). */
-const inteiroPdf = (s) => {
+export const inteiroPdf = (s) => {
   const t = String(s ?? "").replace(/[.,\s]/g, "");
   return /^\d+$/.test(t) ? +t : NaN;
 };
 /** Peso total: "1,5 kg" → 1.5; "3 lb." → 1.5; "—" → 0. Sem unidade, assume kg. */
-function pesoPdf(s) {
+export function pesoPdf(s) {
   const n = numPdf(String(s ?? "").replace(/^[^\d+-]+/, ""));
   if (isNaN(n)) return 0;
   return /lb|libra/i.test(s) ? n / 2 : n;
 }
 /** Distâncias em pés viram metros; o resto fica como está. */
-const distanciaPdf = (s) => (/\d\s*(ft|p[ée]s|')/i.test(s) ? trAlcance(String(s).replace(/'/g, " ft.")) : s);
+export const distanciaPdf = (s) => (/\d\s*(ft|p[ée]s|')/i.test(s) ? trAlcance(String(s).replace(/'/g, " ft.")) : s);
 
-function classeDoTexto(t) {
+export function classeDoTexto(t) {
   const alias = [
     [/^barb/, "barbaro"],
     [/^bard|^brd/, "bardo"],
@@ -126,7 +162,7 @@ function classeDoTexto(t) {
   }
   return achadas;
 }
-function tendenciaDoTexto(t) {
+export function tendenciaDoTexto(t) {
   const n = normTxt(t);
   if (!n) return "";
   const direto = ALIGNS.find(([k, nome]) => normTxt(nome) === n || k.toLowerCase() === n);
@@ -144,14 +180,14 @@ function tendenciaDoTexto(t) {
   const f = ALIGNS.find(([k]) => k === cod);
   return f ? f[1] : "";
 }
-function tamanhoDoTexto(t) {
+export function tamanhoDoTexto(t) {
   const n = normTxt(t);
   if (/^(medio|medium|m)$/.test(n)) return "Médio";
   if (/^(pequeno|small|p|s)$/.test(n)) return "Pequeno";
   if (/^(grande|large|g|l)$/.test(n)) return "Grande";
   return "";
 }
-const KN_EN = {
+export const KN_EN = {
   arcana: "c_arcano",
   "architecture and engineering": "c_arq",
   engineering: "c_arq",
@@ -169,7 +205,7 @@ const KN_EN = {
   planes: "c_planos",
   "os planos": "c_planos",
 };
-function conhecimentoDoTexto(t) {
+export function conhecimentoDoTexto(t) {
   const n = normTxt(
     String(t || "")
       .replace(/^(conhecimento|knowledge)\s*/i, "")
@@ -179,7 +215,7 @@ function conhecimentoDoTexto(t) {
   const k = Object.keys(KN_SHORT).find((x) => normTxt(KN_SHORT[x]) === n);
   return k || KN_EN[n] || null;
 }
-function escolaDoTexto(t) {
+export function escolaDoTexto(t) {
   const n = normTxt(t);
   if (!n) return "";
   const pt = SCHOOLS.find((s) => n.startsWith(normTxt(s)) || normTxt(s) === n);
@@ -187,7 +223,7 @@ function escolaDoTexto(t) {
   const en = Object.keys(TR_ESCOLAS).find((s) => n.startsWith(normTxt(s)));
   return en ? TR_ESCOLAS[en] : "";
 }
-function dominioDoTexto(t) {
+export function dominioDoTexto(t) {
   // Tenta o texto inteiro e depois só as primeiras palavras ("Proteção Fort +6" → "Proteção")
   const ps = normTxt(t).split(" ");
   for (let i = ps.length; i >= 1; i--) {
@@ -196,7 +232,7 @@ function dominioDoTexto(t) {
   }
   return "";
 }
-function dominioExato(t) {
+export function dominioExato(t) {
   const n = normTxt(t);
   const pt = Object.keys(DOMAINS).find((d) => normTxt(d) === n);
   if (pt) return pt;
@@ -204,18 +240,18 @@ function dominioExato(t) {
   return en && DOMAINS[TR_DOMINIOS[en]] ? TR_DOMINIOS[en] : "";
 }
 /** Procura uma magia do catálogo pelo nome em português ou inglês. */
-function magiaDoNome(nome) {
+export function magiaDoNome(nome) {
   const n = normTxt(nome);
   if (!n) return null;
   const k = CAT.find((s) => normTxt(s.nome) === n || normTxt(s.en) === n);
   if (k) return k;
   return magiaPorNomeSRD(nome);
 }
-function talentoDoNome(nome) {
+export function talentoDoNome(nome) {
   const n = normTxt(String(nome).replace(/\s*\(.*\)$/, ""));
   return TALENTOS_SRD.find((t) => normTxt(t.nome) === n || normTxt(t.en) === n) || null;
 }
-const listaPt = (xs) => (xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") + " e " + xs[xs.length - 1]);
+export const listaPt = (xs) => (xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", ") + " e " + xs[xs.length - 1]);
 
 /* ---------- Montagem do personagem ---------- */
 
@@ -224,7 +260,7 @@ const listaPt = (xs) => (xs.length <= 1 ? xs.join("") : xs.slice(0, -1).join(", 
  * @param F campos lidos por lerPdfFicha
  * @param escolha { classeKey, nivel } escolhidos na revisão (opcional)
  */
-function montarDoPdf(F, escolha) {
+export function montarDoPdf(F, escolha) {
   const v = (n) => String(F["untitled" + n] ?? "").trim();
   const avisos = []; // { titulo, texto } — o que não entrou ou precisa de conferência
   const difs = []; // valores calculados que ficaram diferentes do PDF
@@ -735,16 +771,16 @@ function montarDoPdf(F, escolha) {
 
 /* ---------- Janela de importação ---------- */
 
-let importacaoPdf = null; // { F, nomeArquivo, escolha, destino }
-let destinoImportacao = "fichas"; // "fichas" (novo personagem) ou "campanha" (hub do mestre)
+export let importacaoPdf = null; // { F, nomeArquivo, escolha, destino }
+export let destinoImportacao = "fichas"; // "fichas" (novo personagem) ou "campanha" (hub do mestre)
 
-function importPdfModal(destino) {
+export function importPdfModal(destino) {
   destinoImportacao = destino || "fichas";
   modal(`<div class="row"><h2 style="font-size:18px;color:var(--ink)">Importar ficha em PDF</h2><span class="spacer"></span><button class="btn sm ghost" data-a="close">Fechar</button></div>
   <p style="margin:0;line-height:1.5">Escolha um PDF com a ficha do personagem. Funciona melhor com a ficha oficial de 4 páginas do D&amp;D 3.5 (editável ou não, inclusive uma exportada pelo Códex), mas também lemos outros modelos de ficha, desde que o PDF tenha texto. Antes de salvar, mostramos o que não deu para trazer.</p>
   <div class="row"><label class="btn pri" for="pdfimport">Escolher PDF</label><input type="file" id="pdfimport" accept="application/pdf,.pdf" data-a="pdfimport" style="position:absolute;left:-9999px"><span id="pdfimpmsg" class="small muted" role="status"></span></div>`);
 }
-async function lerArquivoImportacao(file) {
+export async function lerArquivoImportacao(file) {
   const msg = document.getElementById("pdfimpmsg");
   if (msg) msg.textContent = "Lendo a ficha…";
   try {
@@ -762,7 +798,7 @@ async function lerArquivoImportacao(file) {
     }
   }
 }
-function revisaoImportacao() {
+export function revisaoImportacao() {
   const imp = importacaoPdf;
   const r = montarDoPdf(imp.F, imp.escolha);
   const c = r.c;
@@ -796,7 +832,7 @@ function revisaoImportacao() {
   ${tudoCerto}${blocoAvisos}${blocoDifs}
   <div class="row"><button class="btn pri" data-a="impconfirmar" ${k ? "" : "disabled"}>${imp.destino === "campanha" ? "Adicionar à campanha" : "Criar personagem"}</button><button class="btn" data-a="close">Cancelar</button>${k ? "" : '<span class="small" style="color:var(--bad)">Escolha a classe para continuar.</span>'}</div>`;
 }
-function confirmarImportacao() {
+export function confirmarImportacao() {
   if (!importacaoPdf) return;
   const { c } = montarDoPdf(importacaoPdf.F, importacaoPdf.escolha);
   if (!c.classeKey) return;

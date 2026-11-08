@@ -1,12 +1,15 @@
 /* ================= Personagens ================= */
-function spellFromCat(nome) {
+import { clone, uidGen } from "../util.js";
+import { CAT } from "../dados/catalogo.js";
+
+export function spellFromCat(nome) {
   const c = CAT.find((x) => x.nome === nome);
   const s = clone(c);
   delete s.cid;
   s.id = uidGen();
   return s;
 }
-function blankChar() {
+export function blankChar() {
   return {
     id: uidGen(),
     nome: "Novo personagem",
@@ -55,7 +58,7 @@ function blankChar() {
     estilo: "",
   };
 }
-function volis(L) {
+export function volis(L) {
   L = L || 1;
   const c = blankChar();
   Object.assign(c, {

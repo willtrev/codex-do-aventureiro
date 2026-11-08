@@ -1,5 +1,13 @@
 /* ================= Aba Ficha ================= */
-function listEditor(path, label, fields) {
+import { esc, mod, sg } from "../util.js";
+import { ATTRS } from "../regras/basicas.js";
+import { CLASSES, CLASS_ORDER, babOf, cls } from "../regras/classes.js";
+import { ALIGNS, alignBlock, alignCode, alignNotes, geNeutral } from "../regras/tendencias.js";
+import { domList } from "../regras/dominios.js";
+import { WTYPE, atkBonus, dmgTxt, hpSuggest } from "../regras/calculos.js";
+import { cur, getPath, inp } from "../interface/estado.js";
+
+export function listEditor(path, label, fields) {
   const arr = getPath(cur(), path) || [];
   return `<div class="list">${arr
     .map(
@@ -11,7 +19,7 @@ function listEditor(path, label, fields) {
     <button class="btn sm" data-a="add" data-p="${path}" style="align-self:flex-start">Adicionar ${label}</button></div>`;
 }
 
-function vFicha(c) {
+export function vFicha(c) {
   const sug = hpSuggest(c);
   return `<div class="grid">
   <section class="card c12"><h2>Identidade</h2><div class="fields">

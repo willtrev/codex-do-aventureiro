@@ -7,13 +7,15 @@
        para o campo da ficha em cuja área ele caiu (posições em js/dados/ficha-campos.js).
      - "texto": qualquer outro PDF com texto (outra ficha, um documento, uma exportação de outro site).
        Procuramos rótulos como "Nome:", "Classe:", "For 16", "PV 18" e seções "Magias", "Talentos"... */
+import { FICHA_CAMPOS, FICHA_PAGINA } from "../dados/ficha-campos.js";
+import { normTxt } from "./importar.js";
 
-const PDFJS_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
-const PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
-let pdfjsPromise = null;
-function loadPdfJs() {
+export const PDFJS_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+export const PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+export let pdfjsPromise = null;
+export function loadPdfJs() {
   if (!pdfjsPromise)
-    pdfjsPromise = import(PDFJS_URL)
+    pdfjsPromise = import(/* @vite-ignore */ PDFJS_URL)
       .then((m) => {
         m.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
         return m;
@@ -26,7 +28,7 @@ function loadPdfJs() {
 }
 
 /** Extrai os pedaços de texto com posição: [{ p, x, y, w, h, s }] e o tamanho das páginas. */
-async function extrairTextoPdf(bytes) {
+export async function extrairTextoPdf(bytes) {
   const pdfjs = await loadPdfJs();
   const doc = await pdfjs.getDocument({ data: new Uint8Array(bytes.slice(0)), isEvalSupported: false }).promise;
   const itens = [],
@@ -54,7 +56,7 @@ async function extrairTextoPdf(bytes) {
 }
 
 /** Agrupa os pedaços em linhas de texto, na ordem de leitura. */
-function linhasDoTexto(itens) {
+export function linhasDoTexto(itens) {
   const ord = itens.slice().sort((a, b) => a.p - b.p || b.y - a.y || a.x - b.x);
   const linhas = [];
   let atual = null;
@@ -80,7 +82,7 @@ function linhasDoTexto(itens) {
 
 /* ---------- Caso 1: ficha oficial achatada ---------- */
 
-function camposPorPosicao({ itens, paginas }) {
+export function camposPorPosicao({ itens, paginas }) {
   if (paginas.length < 3 || paginas.length > 5) return null;
   const sx = paginas[0].largura / FICHA_PAGINA.largura,
     sy = paginas[0].altura / FICHA_PAGINA.altura;
@@ -120,7 +122,7 @@ function camposPorPosicao({ itens, paginas }) {
 
 /* ---------- Caso 2: texto livre ---------- */
 
-const ROTULOS = [
+export const ROTULOS = [
   [7, ["nome do personagem", "character name", "nome", "name", "personagem", "character"]],
   [1, ["jogador", "player"]],
   [
@@ -164,7 +166,7 @@ const ROTULOS = [
   ],
   [568, ["escolas proibidas", "proibidas", "prohibited schools", "prohibited"]],
 ];
-const ROT_NUM = [
+export const ROT_NUM = [
   [13, ["força", "forca", "strength", "for", "str"]],
   [15, ["destreza", "dexterity", "des", "dex"]],
   [17, ["constituição", "constituicao", "constitution", "con"]],
@@ -180,7 +182,7 @@ const ROT_NUM = [
   [75, ["bônus base de ataque", "bonus base de ataque", "base attack bonus", "bba", "bab"]],
   [466, ["peças de ouro", "pecas de ouro", "gold pieces", "po", "gp"]],
 ];
-const SECOES = [
+export const SECOES = [
   [
     "magias",
     /^(magias|spells|grim[óo]rio|spellbook|lista de magias|magias conhecidas|spells known|magias preparadas|spells prepared)\b/i,
@@ -193,11 +195,11 @@ const SECOES = [
     /^(habilidades|caracter[íi]sticas|class features|tra[çc]os|traits|notas|notes|hist[óo]ria|background|descri[çc][ãa]o|ataques|attacks|armas|weapons|dinheiro|money|idiomas|languages)\b/i,
   ],
 ];
-const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const SEM_LETRA_ANTES = "(?<![\\p{L}\\p{N}])",
+export const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export const SEM_LETRA_ANTES = "(?<![\\p{L}\\p{N}])",
   SEM_LETRA_DEPOIS = "(?![\\p{L}])";
 
-function camposDeTextoLivre(linhas) {
+export function camposDeTextoLivre(linhas) {
   const F = {};
   const achados = new Set();
   const texto = linhas.join("\n");
@@ -307,7 +309,7 @@ function camposDeTextoLivre(linhas) {
 }
 
 /** Converte os campos de um formulário que não é a ficha oficial em linhas "rótulo: valor". */
-function linhasDeOutroFormulario(F) {
+export function linhasDeOutroFormulario(F) {
   return Object.entries(F)
     .filter(([, v]) => typeof v === "string" && v.trim())
     .map(([k, v]) => `${k.replace(/[_\-.]+/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2")}: ${v.trim()}`);

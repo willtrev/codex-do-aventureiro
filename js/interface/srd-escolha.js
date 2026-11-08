@@ -2,11 +2,18 @@
    Janelas com busca para adicionar à ficha itens vindos de js/dados/srd-*.js.
    Os nomes em português vêm de TR_TALENTOS e TR_EQUIPAMENTO (js/dados/traducoes.js);
    quando falta tradução, aparece o nome original em inglês. */
+import { esc } from "../util.js";
+import { TR_EQUIPAMENTO, TR_TALENTOS } from "../dados/traducoes.js";
+import { trAlcance } from "../regras/traduzir.js";
+import { SRD_TALENTOS } from "../dados/srd-talentos.js";
+import { SRD_EQUIPAMENTO } from "../dados/srd-equipamento.js";
+import { idioma, nomeDe, nomeHTML } from "./idioma.js";
+import { modal } from "./modais.js";
 
 /* ---------- Conversões ---------- */
 
 /** "1-1/2 lb." → 0,75 kg. Segue a convenção dos livros em português: 1 lb = 0,5 kg. */
-function libraParaKg(t) {
+export function libraParaKg(t) {
   const m = String(t || "").match(/(\d+)(?:-(\d+)\/(\d+)|\/(\d+))?/);
   if (!m) return 0;
   let lb = +m[1];
@@ -15,21 +22,21 @@ function libraParaKg(t) {
   return Math.round((lb / 2) * 1000) / 1000;
 }
 /** "35 gp" → 35; "5 sp" → 0,5; "1 cp" → 0,01 (em PO). */
-function precoEmPO(t) {
+export function precoEmPO(t) {
   const m = String(t || "")
     .replace(/,/g, "")
     .match(/([\d.]+)\s*(pp|gp|sp|cp)/);
   if (!m) return null;
   return +m[1] * { pp: 10, gp: 1, sp: 0.1, cp: 0.01 }[m[2]];
 }
-const precoTxt = (t) =>
+export const precoTxt = (t) =>
   String(t || "—")
     .replace(/(\d),(\d{3})/g, "$1.$2")
     .replace(/\bgp\b/g, "PO")
     .replace(/\bsp\b/g, "PP")
     .replace(/\bcp\b/g, "PC")
     .replace(/\bpp\b/g, "PL");
-const TR_CATEG_EQUIP = {
+export const TR_CATEG_EQUIP = {
   "Simple Weapons": "Armas simples",
   "Martial Weapons": "Armas comuns",
   "Exotic Weapons": "Armas exóticas",
@@ -37,7 +44,7 @@ const TR_CATEG_EQUIP = {
   Item: "Itens",
   Service: "Serviços",
 };
-const TR_SUBCAT_EQUIP = {
+export const TR_SUBCAT_EQUIP = {
   "Light Melee Weapons": "corpo a corpo leve",
   "One-Handed Melee Weapons": "corpo a corpo de uma mão",
   "Two-Handed Melee Weapons": "corpo a corpo de duas mãos",
@@ -58,8 +65,8 @@ const TR_SUBCAT_EQUIP = {
   Transport: "transporte",
   "Spellcasting and Services": "serviços",
 };
-const TR_TIPO_DANO = { Piercing: "perfurante", Slashing: "cortante", Bludgeoning: "contusão" };
-const trTipoDano = (t) =>
+export const TR_TIPO_DANO = { Piercing: "perfurante", Slashing: "cortante", Bludgeoning: "contusão" };
+export const trTipoDano = (t) =>
   String(t || "")
     .replace(/Piercing|Slashing|Bludgeoning/g, (x) => TR_TIPO_DANO[x])
     .replace(/ or /g, " ou ")
@@ -67,13 +74,13 @@ const trTipoDano = (t) =>
 
 /* ---------- Catálogos com nome PT + EN ---------- */
 
-const TALENTOS_SRD = window.SRD.talentos.map((t, i) => ({
+export const TALENTOS_SRD = SRD_TALENTOS.map((t, i) => ({
   i,
   nome: TR_TALENTOS[t.nome] || t.nome,
   en: t.nome,
   srd: t,
 }));
-const EQUIP_SRD = window.SRD.equipamento.map((e, i) => ({
+export const EQUIP_SRD = SRD_EQUIPAMENTO.map((e, i) => ({
   i,
   nome: TR_EQUIPAMENTO[e.nome] || e.nome,
   en: e.nome,
@@ -82,9 +89,9 @@ const EQUIP_SRD = window.SRD.equipamento.map((e, i) => ({
 
 /* ---------- Busca compartilhada ---------- */
 
-let buscaSRD = "",
+export let buscaSRD = "",
   filtroEquip = "";
-function filtrarSRD() {
+export function filtrarSRD() {
   const q = buscaSRD.trim().toLowerCase();
   let n = 0;
   document.querySelectorAll("#srdlist .spellrow").forEach((r) => {
@@ -96,10 +103,10 @@ function filtrarSRD() {
   const info = document.getElementById("srdcount");
   if (info) info.textContent = `${n} resultado${n === 1 ? "" : "s"}`;
 }
-const buscaDe = (x, extra) => [x.nome, x.en, ...(extra || [])].filter(Boolean).join(" ").toLowerCase();
-const caixaBusca = (ph) =>
+export const buscaDe = (x, extra) => [x.nome, x.en, ...(extra || [])].filter(Boolean).join(" ").toLowerCase();
+export const caixaBusca = (ph) =>
   `<div class="row"><label class="f" for="busca_srd" style="flex:1">Buscar (português ou inglês)<input id="busca_srd" type="search" value="${esc(buscaSRD)}" placeholder="${esc(ph)}"></label><span id="srdcount" class="small muted"></span></div>`;
-function abrirSRD(html) {
+export function abrirSRD(html) {
   modal(html);
   filtrarSRD();
   const bi = document.getElementById("busca_srd");
@@ -108,7 +115,7 @@ function abrirSRD(html) {
 
 /* ---------- Talentos ---------- */
 
-function featModal(c) {
+export function featModal(c) {
   const tem = new Set((c.talentos || []).map((t) => String(t.en || t.nome).toLowerCase()));
   const rows = TALENTOS_SRD.slice()
     .sort((a, b) => nomeDe(a).localeCompare(nomeDe(b)))
@@ -127,7 +134,7 @@ function featModal(c) {
   ${caixaBusca("ex.: magia em combate, combat casting, metamagic")}
   <div id="srdlist">${rows}</div>`);
 }
-function addFeat(c, i) {
+export function addFeat(c, i) {
   const t = TALENTOS_SRD[i];
   if (!t) return;
   c.talentos = c.talentos || [];
@@ -136,7 +143,7 @@ function addFeat(c, i) {
 
 /* ---------- Equipamento ---------- */
 
-function equipModal(c) {
+export function equipModal(c) {
   const cats = [...new Set(EQUIP_SRD.map((e) => e.srd.categoria))];
   const rows = EQUIP_SRD.filter((e) => e.srd.categoria !== "Service")
     .map((e) => {
@@ -171,7 +178,7 @@ function equipModal(c) {
   <p id="srdmsg" class="small" style="margin:0;color:var(--good)" role="status"></p>`);
 }
 /** Adiciona o item; com comprar=true, desconta o preço (em PO, usando PP e PC se precisar). */
-function addEquip(c, i, comprar) {
+export function addEquip(c, i, comprar) {
   const e = EQUIP_SRD[i];
   if (!e) return "";
   const s = e.srd;
@@ -226,4 +233,12 @@ function addEquip(c, i, comprar) {
     else c.ca.armadura = v;
   }
   return `${nome} adicionado${comprar ? " e pago" : ""}.`;
+}
+
+/* Funções para outros arquivos alterarem as variáveis deste (imports são somente leitura). */
+export function setBuscaSRD(v) {
+  buscaSRD = v;
+}
+export function setFiltroEquip(v) {
+  filtroEquip = v;
 }

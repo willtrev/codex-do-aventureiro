@@ -1,11 +1,17 @@
 /* ================= Classes básicas (Livro do Jogador 3.5) ================= */
+import { clamp, esc, mod, sg } from "../util.js";
+import { SK } from "./basicas.js";
+import { TR_CLASSES, TR_PERICIAS } from "../dados/traducoes.js";
+import { SRD_CLASSES } from "../dados/srd-classes.js";
+import { DOMAINS, domList, energiaNegativa } from "./dominios.js";
+
 /*
   Classes básicas do Livro do Jogador.
   Aqui ficam só as escolhas do app (nome em português, ouro inicial e como cada classe lança magias).
   Dado de vida, BBA, testes de resistência, perícias de classe, pontos de perícia e as tabelas de
   magias por dia e magias conhecidas vêm do SRD (js/dados/srd-classes.js) em aplicarSRDClasses(), logo abaixo.
 */
-const CLASSES = {
+export const CLASSES = {
   barbaro: { nome: "Bárbaro", ouro: "4d4 × 10 (média 100 PO)" },
   bardo: {
     nome: "Bardo",
@@ -48,7 +54,7 @@ const CLASSES = {
 };
 
 /* Converte a lista de perícias de classe do SRD para as chaves do app */
-function periciasDoSRD(lista) {
+export function periciasDoSRD(lista) {
   const out = new Set();
   for (const p of lista) {
     if (/^Knowledge \(all/.test(p))
@@ -60,19 +66,19 @@ function periciasDoSRD(lista) {
   return [...out];
 }
 /* Linha da tabela de magias: espaços base por nível (null = não lança aquele nível ainda) */
-const linhaEspacos = (r) => {
+export const linhaEspacos = (r) => {
   const v = r.espacos.map((e) => (e ? e[0] : null));
   while (v.length && v[v.length - 1] === null) v.pop();
   return v.length ? v : null;
 };
-const linhaConhecidas = (r) => {
+export const linhaConhecidas = (r) => {
   const v = r.conhecidas.slice();
   while (v.length && v[v.length - 1] === null) v.pop();
   return v;
 };
-function aplicarSRDClasses() {
+export function aplicarSRDClasses() {
   for (const [en, chave] of Object.entries(TR_CLASSES)) {
-    const S = window.SRD.classes[en],
+    const S = SRD_CLASSES[en],
       C = CLASSES[chave];
     C.srd = S.tabela;
     C.dv = S.dado_vida;
@@ -89,7 +95,7 @@ function aplicarSRDClasses() {
 }
 aplicarSRDClasses();
 
-const CLASS_ORDER = [
+export const CLASS_ORDER = [
   "barbaro",
   "bardo",
   "clerigo",
@@ -102,8 +108,8 @@ const CLASS_ORDER = [
   "feiticeiro",
   "mago",
 ];
-const ATTR_NAME = { for: "For", des: "Des", con: "Con", int: "Int", sab: "Sab", car: "Car" };
-function classKeyFromName(n) {
+export const ATTR_NAME = { for: "For", des: "Des", con: "Con", int: "Int", sab: "Sab", car: "Car" };
+export function classKeyFromName(n) {
   n = String(n || "")
     .toLowerCase()
     .normalize("NFD")
@@ -113,40 +119,40 @@ function classKeyFromName(n) {
     (n.includes("clerig") ? "clerigo" : n.includes("feitic") ? "feiticeiro" : "mago")
   );
 }
-const cls = (c) => CLASSES[c.classeKey] || CLASSES.mago;
-const lvlOf = (c) => clamp(+c.nivel || 1, 1, 20);
-function at(c, k) {
+export const cls = (c) => CLASSES[c.classeKey] || CLASSES.mago;
+export const lvlOf = (c) => clamp(+c.nivel || 1, 1, 20);
+export function at(c, k) {
   let v = +c.attr[k] || 0;
   if (c.ef && c.ef.furia && c.classeKey === "barbaro" && (k === "for" || k === "con")) v += 4;
   return v;
 }
 /* BBA e testes de resistência base vêm da tabela do SRD da classe */
-function babOf(c) {
+export function babOf(c) {
   return cls(c).srd[lvlOf(c) - 1].bba;
 }
-function saveBase(c, k) {
+export function saveBase(c, k) {
   return cls(c).srd[lvlOf(c) - 1][k];
 }
-function spellAttr(c) {
+export function spellAttr(c) {
   const m = cls(c).magia;
   return m ? m.attr : "int";
 }
-function casterLevel(c) {
+export function casterLevel(c) {
   const m = cls(c).magia;
   if (!m) return 0;
   return m.clMeio ? Math.floor(lvlOf(c) / 2) : lvlOf(c);
 }
-function bonusSpells(score, l) {
+export function bonusSpells(score, l) {
   const am = Math.floor((score - 10) / 2);
   return l > 0 && am >= l ? Math.floor((am - l) / 4) + 1 : 0;
 }
-function knownTable(c) {
+export function knownTable(c) {
   const m = cls(c).magia;
   if (!m || !m.conhecidas) return null;
   return m.conhecidas[lvlOf(c) - 1] || [];
 }
 /* Recursos e habilidades por classe */
-function classFeatures(c) {
+export function classFeatures(c) {
   const k = c.classeKey,
     L = lvlOf(c),
     mod_ = (a) => mod(at(c, a)),

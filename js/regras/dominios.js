@@ -2,7 +2,15 @@
   Para cada domínio: poder (resumo em português), per (perícias que viram de classe),
   rec (habilidade com usos por dia, mostrada no painel), tend (tendência exigida) e restricoes (observações por nível).
 */
-const DOMAINS = {
+import { clone, uidGen } from "../util.js";
+import { TR_DOMINIOS } from "../dados/traducoes.js";
+import { SRD_DOMINIOS } from "../dados/srd-dominios.js";
+import { CAT, magiaPorNomeSRD } from "../dados/catalogo.js";
+import { lvlOf } from "./classes.js";
+import { alignCode, geNeutral, isEvil } from "./tendencias.js";
+import { slotTable } from "./calculos.js";
+
+export const DOMAINS = {
   Água: {
     poder:
       "Expulsa ou destrói criaturas do fogo e fascina ou comanda criaturas da água, como um clérigo bom expulsa mortos-vivos.",
@@ -149,8 +157,8 @@ const DOMAINS = {
   - en e poderSRD: nome e poder concedido originais, em inglês
   O texto "poder" acima é o resumo em português mostrado no app.
 */
-function aplicarSRDDominios() {
-  for (const d of window.SRD.dominios) {
+export function aplicarSRDDominios() {
+  for (const d of SRD_DOMINIOS) {
     const D = DOMAINS[TR_DOMINIOS[d.nome]];
     if (!D) continue;
     D.en = d.nome;
@@ -163,18 +171,18 @@ function aplicarSRDDominios() {
   }
 }
 aplicarSRDDominios();
-const DOMAIN_NAMES = Object.keys(DOMAINS).sort((a, b) => a.localeCompare(b));
-function energiaNegativa(c) {
+export const DOMAIN_NAMES = Object.keys(DOMAINS).sort((a, b) => a.localeCompare(b));
+export function energiaNegativa(c) {
   const k = alignCode(c.tendencia);
   return isEvil(k) || (geNeutral(k) && c.energia === "negativa");
 }
-function domList(c) {
+export function domList(c) {
   return String(c.dominios || "")
     .split(",")
     .map((x) => x.trim())
     .filter((x) => DOMAINS[x]);
 }
-function domainSpellNames(c, l) {
+export function domainSpellNames(c, l) {
   const out = new Set();
   for (const d of domList(c)) {
     const n = DOMAINS[d].m[l - 1];
@@ -182,7 +190,7 @@ function domainSpellNames(c, l) {
   }
   return out;
 }
-function domainSpellLevel(c, nome) {
+export function domainSpellLevel(c, nome) {
   let best = null;
   for (const d of domList(c)) {
     const i = DOMAINS[d].m.findIndex((x) => x.replace(/ \(.*\)$/, "") === nome);
@@ -190,7 +198,7 @@ function domainSpellLevel(c, nome) {
   }
   return best;
 }
-function syncDomainSpells(c) {
+export function syncDomainSpells(c) {
   if (c.classeKey !== "clerigo") return;
   const maxL = Math.max(1, ...slotTable(c).map((r) => r.l));
   for (let l = 1; l <= maxL; l++)

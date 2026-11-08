@@ -1,5 +1,14 @@
 /* ================= Aba Magias ================= */
-function domainAllowed(d, ak) {
+import { esc, lvlName, mod, sg } from "../util.js";
+import { SCHOOLS } from "../regras/basicas.js";
+import { temTeste } from "../dados/catalogo.js";
+import { ATTR_NAME, at, casterLevel, cls, knownTable, lvlOf } from "../regras/classes.js";
+import { alignCode, alignName, isChaotic, isEvil, isGood, isLawful } from "../regras/tendencias.js";
+import { DOMAINS, DOMAIN_NAMES, domList, domainSpellLevel } from "../regras/dominios.js";
+import { dc, ensurePrep, proibList, spellLine } from "../regras/calculos.js";
+import { nomeDe, nomeHTML, nomeTxt } from "../interface/idioma.js";
+
+export function domainAllowed(d, ak) {
   return d === "Bem"
     ? isGood(ak)
     : d === "Mal"
@@ -10,7 +19,7 @@ function domainAllowed(d, ak) {
           ? isChaotic(ak)
           : true;
 }
-function domainPicker(c) {
+export function domainPicker(c) {
   const sel = domList(c);
   const ak = alignCode(c.tendencia);
   const bad = sel.filter((d) => !domainAllowed(d, ak));
@@ -26,7 +35,7 @@ function domainPicker(c) {
   </div>
   ${sel.length ? `<div class="tbl"><table><thead><tr><th>Domínio</th><th>Poder concedido</th><th>Magias por nível (1º a 9º)</th></tr></thead><tbody>${sel.map((d) => `<tr><td><b>${esc(d)}</b></td><td class="small">${esc(DOMAINS[d].poder)}</td><td class="small">${DOMAINS[d].m.map((n, i) => `<span style="white-space:nowrap">${i + 1}º ${esc(n)}</span>`).join(" · ")}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
 }
-function vMagias(c) {
+export function vMagias(c) {
   const k = cls(c),
     m = k.magia,
     L = lvlOf(c);
