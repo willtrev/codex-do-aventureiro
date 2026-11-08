@@ -25,7 +25,14 @@ export const LISTA_NOME = {
   ranger: "Ranger",
   paladino: "Paladino",
 };
-export const LISTA_EN = { mago: "Sor/Wiz", clerigo: "Clr", druida: "Drd", bardo: "Brd", ranger: "Rgr", paladino: "Pal" };
+export const LISTA_EN = {
+  mago: "Sor/Wiz",
+  clerigo: "Clr",
+  druida: "Drd",
+  bardo: "Brd",
+  ranger: "Rgr",
+  paladino: "Pal",
+};
 /** Registro original do SRD para uma magia (ou null para magias personalizadas). */
 export const srdDe = (s) => (s && s.en ? SRD_MAGIA_POR_EN.get(String(s.en).toLowerCase()) || null : null);
 /** Texto do SRD em parágrafos HTML. */

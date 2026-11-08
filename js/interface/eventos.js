@@ -12,6 +12,19 @@ import { applyTheme, setTheme, theme } from "./tema.js";
 import { setIdioma } from "./idioma.js";
 import { convite, cur, getPath, irPara, readHash, setConvite, setPath } from "./estado.js";
 import { entrarMesaModal, atualizarSelo } from "../telas/mesa-jogador.js";
+import { setPapelPreferido } from "../telas/combate.js";
+import {
+  adicionarMonstros,
+  encerrarCombate,
+  iniciarCombate,
+  mesaCombate,
+  mudarPVMonstro,
+  passarVez,
+  reduzirImagem,
+  removerToken,
+  salvarConfig,
+  salvarFundo,
+} from "../tempo-real/combate.js";
 import { entrarNaMesa, fecharMesa, mensagemDeErro, reconectar, sairDaMesa } from "../tempo-real/mesa.js";
 import { render } from "../telas/topo.js";
 import {
@@ -126,6 +139,25 @@ document.addEventListener("change", (e) => {
       salvarCampanha(campanha());
       topoMestre();
     }
+    return;
+  }
+  if (el.dataset.a === "cbfundo" && el.files && el.files[0]) {
+    const msg = document.getElementById("cbc_msg");
+    msg.textContent = "Reduzindo e enviando a imagem…";
+    reduzirImagem(el.files[0])
+      .then(async (img) => {
+        // Mantém os quadrados quadrados: as linhas acompanham a proporção da imagem
+        const colunas = mesaCombate.config.colunas;
+        await salvarConfig({ colunas, linhas: Math.max(5, Math.round((colunas * img.altura) / img.largura)) });
+        await salvarFundo(img.dados);
+        // O painel pode ter sido redesenhado com a imagem nova: busca a mensagem de novo
+        const m = document.getElementById("cbc_msg");
+        if (m) m.textContent = `Imagem enviada (${Math.round(img.dados.length / 1024)} KB).`;
+      })
+      .catch((err) => {
+        const m = document.getElementById("cbc_msg");
+        if (m) m.textContent = err.message;
+      });
     return;
   }
   if (el.dataset.a === "pdfimport" && el.files && el.files[0]) {
@@ -453,6 +485,66 @@ document.addEventListener("click", async (e) => {
     }
     case "importpdf":
       importPdfModal();
+      break;
+    /* ----- Mesa de combate ----- */
+    case "abrircombate":
+      setPapelPreferido(b.dataset.p);
+      location.hash = "combate";
+      break;
+    case "cbrolar":
+      await iniciarCombate();
+      break;
+    case "cbproximo":
+      await passarVez(1);
+      break;
+    case "cbanterior":
+      await passarVez(-1);
+      break;
+    case "cbencerrar":
+      await encerrarCombate();
+      break;
+    case "cbaddmonstro": {
+      const v = (id) => document.getElementById(id).value;
+      const nome = v("cbm_nome").trim();
+      const msg = document.getElementById("cbm_msg");
+      if (!nome) {
+        msg.textContent = "Dê um nome ao monstro.";
+        break;
+      }
+      msg.textContent = "";
+      await adicionarMonstros({
+        nome,
+        pv: Math.max(1, +v("cbm_pv") || 1),
+        ca: +v("cbm_ca") || 10,
+        ini: +v("cbm_ini") || 0,
+        quantidade: clamp(+v("cbm_qtd") || 1, 1, 20),
+      });
+      document.getElementById("cbm_nome").value = "";
+      break;
+    }
+    case "cbdano":
+    case "cbcura": {
+      const valor = Math.max(0, +document.getElementById("cbm_valor").value || 0);
+      await mudarPVMonstro(b.dataset.id, a === "cbdano" ? -valor : valor);
+      break;
+    }
+    case "cbremover":
+      await removerToken(b.dataset.id);
+      break;
+    case "cbcfg":
+      await salvarConfig({
+        colunas: clamp(+document.getElementById("cbc_col").value || 20, 5, 60),
+        linhas: clamp(+document.getElementById("cbc_lin").value || 14, 5, 60),
+      });
+      break;
+    case "cblink": {
+      const link = document.getElementById("cbc_link").value.trim();
+      if (/^https?:\/\//.test(link)) await salvarFundo(link);
+      else document.getElementById("cbc_msg").textContent = "Cole um link que comece com https://";
+      break;
+    }
+    case "cblimpar":
+      await salvarFundo(null);
       break;
     /* ----- Mesa online: jogador ----- */
     case "mesaentrar":

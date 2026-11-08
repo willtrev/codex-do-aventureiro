@@ -21,6 +21,7 @@ import { theme } from "../interface/tema.js";
 import { IDIOMAS, idioma, nomeDe } from "../interface/idioma.js";
 import { normTxt } from "../pdf/importar.js";
 import { modal } from "../interface/modais.js";
+import { modo } from "../interface/estado.js";
 import { agarrar, iniciativa, resumoAoVivo } from "../tempo-real/resumo.js";
 import { abrirMesa, escutarMesa, linkConvite, mesaMestre } from "../tempo-real/mesa.js";
 
@@ -293,6 +294,7 @@ export function secaoMesa(g) {
           : `<span class="small muted">conectando…</span>`;
     corpo = `<div class="row" style="align-items:center"><div style="flex:1;min-width:240px"><h2>Mesa online</h2>
       <div class="row" style="margin-top:6px;align-items:baseline"><span class="small muted">Código</span><b class="mcodigo">${esc(g.mesa.codigo)}</b>${st}</div></div>
+      <button class="btn pri" data-a="abrircombate" data-p="mestre">Abrir mapa de combate</button>
       <button class="btn" data-a="mesacopiar">Copiar link de convite</button>
       ${x.status === "erro" ? `<button class="btn pri" data-a="mesaabrir">Abrir nova mesa</button>` : ""}
       <button class="btn sm danger" data-a="mesafechar">Fechar mesa</button></div>
@@ -315,7 +317,7 @@ export function atualizarGrade() {
   const el = document.getElementById("mgrid");
   const g = campanha();
   if (el && g) el.innerHTML = gradeCards(g);
-  topoMestre(); // contagem de personagens no topo (o topo não tem campos de edição)
+  if (modo === "mestre") topoMestre(); // contagem de personagens no topo (o topo não tem campos de edição)
 }
 export function atualizarCard(m) {
   const el = document.getElementById("card_" + m.mid);

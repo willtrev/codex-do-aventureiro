@@ -15,8 +15,15 @@ import { vPericias } from "./pericias.js";
 import { vFicha } from "./ficha.js";
 import { vInv, vNotas } from "./inventario-notas.js";
 import { seloMesa } from "./mesa-jogador.js";
+import { montarCombate, sairDoCombate, vCombate } from "./combate.js";
 
 export function render() {
+  if (modo === "combate") {
+    document.getElementById("main").innerHTML = vCombate();
+    montarCombate();
+    return;
+  }
+  sairDoCombate();
   if (modo === "mestre") {
     document.getElementById("main").innerHTML = vMestre();
     return;

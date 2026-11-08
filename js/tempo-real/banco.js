@@ -7,6 +7,7 @@
      uid                                  quem é esta pessoa (login anônimo)
      ler(caminho)                         → valor atual (ou null)
      gravar(caminho, valor) / atualizar(caminho, {campo: valor}) / remover(caminho)
+     criarSeNaoExiste(caminho, valor)     → true se gravou; não sobrescreve o que já existe
      ouvir(caminho, cb)                   → cb(valor) agora e a cada mudança; devolve a função para parar
      ouvirFilhos(caminho, {adicionado, mudado, removido}) → um aviso por filho; devolve a função para parar
      aoDesconectar(caminho, valor)        o servidor grava isso quando a conexão cair

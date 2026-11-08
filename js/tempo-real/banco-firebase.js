@@ -33,6 +33,9 @@ export async function criarBancoFirebase() {
     gravar: (p, v) => db.set(r(p), v),
     atualizar: (p, v) => db.update(r(p), v),
     remover: (p) => db.remove(r(p)),
+    // Transação: só grava se ainda não existir (duas pessoas criando a mesma peça ao mesmo tempo)
+    criarSeNaoExiste: async (p, v) =>
+      (await db.runTransaction(r(p), (atual) => (atual === null ? v : undefined), { applyLocally: false })).committed,
     ouvir: (p, cb) => db.onValue(r(p), (s) => cb(val(s))),
     ouvirFilhos(p, { adicionado, mudado, removido }) {
       const offs = [];

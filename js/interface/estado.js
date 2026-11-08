@@ -25,8 +25,8 @@ export function readHash() {
     tab = "painel";
     return;
   }
-  modo = h === "mestre" ? "mestre" : "fichas";
-  if (modo === "mestre") return;
+  modo = h === "mestre" ? "mestre" : h === "combate" ? "combate" : "fichas";
+  if (modo !== "fichas") return;
   tab = TABS.some((t) => t[0] === h) ? h : "painel";
 }
 /** Troca de aba (atualiza o endereço sem criar entrada nova no histórico). */

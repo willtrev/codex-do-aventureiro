@@ -9,7 +9,7 @@
    Jogador: entra com o código; a cada mudança na ficha o resumo vai em ~0,15 s
    e a ficha completa em ~2 s (para não enviar a ficha inteira a cada clique).
    Mestre: abre a mesa a partir de uma campanha e recebe as mudanças de cada jogador. */
-import { clone } from "../util.js";
+import { clone, comoListas } from "../util.js";
 import { conectarBanco } from "./banco.js";
 import { resumoAoVivo } from "./resumo.js";
 import { touch } from "../armazenamento/armazenamento.js";
@@ -169,8 +169,8 @@ export async function escutarMesa(g, aoMudar) {
     const naFicha = (uid, v, novo) => {
       const x = vivo(uid);
       const mudouFicha = JSON.stringify(x.ficha) !== JSON.stringify(v.ficha);
-      x.resumo = v.resumo;
-      x.ficha = v.ficha;
+      x.resumo = comoListas(v.resumo);
+      x.ficha = comoListas(v.ficha);
       aoMudar(uid, novo || mudouFicha ? "ficha" : "resumo");
     };
     pararEscuta.push(
@@ -213,6 +213,7 @@ export async function fecharMesa(g) {
   try {
     const b = await conectarBanco();
     await b.remover(`mesas/${codigo}`);
+    await b.remover(`privado/${codigo}`); // PV e CA dos monstros
   } catch (e) {}
 }
 

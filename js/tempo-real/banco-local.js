@@ -26,44 +26,66 @@ export function criarBancoLocal() {
   }
   const ouvintes = new Set();
   const canal = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(CHAVE) : null;
-  const raiz = () => {
-    try {
-      return JSON.parse(localStorage.getItem(CHAVE) || "{}");
-    } catch (e) {
-      return {};
+  /* Cada aba guarda a árvore na memória e aplica as gravações na ordem em que chegam
+     (as próprias e as das outras abas, pelo BroadcastChannel). O localStorage é só a foto
+     usada por uma aba que abre depois. Assim nenhuma aba lê um estado pela metade. */
+  let mem = {};
+  try {
+    mem = JSON.parse(localStorage.getItem(CHAVE) || "{}");
+  } catch (e) {}
+  const pegar = (p) => partes(p).reduce((o, k) => (o && typeof o === "object" ? o[k] : undefined), mem) ?? null;
+  function aplicar(ops) {
+    for (const [p, v] of ops) {
+      const ks = partes(p);
+      if (!ks.length) {
+        mem = v && typeof v === "object" ? clone(v) : {};
+        continue;
+      }
+      let o = mem;
+      for (const k of ks.slice(0, -1)) o = o[k] && typeof o[k] === "object" ? o[k] : (o[k] = {});
+      if (v === null || v === undefined) delete o[ks.at(-1)];
+      else o[ks.at(-1)] = clone(v);
     }
-  };
-  const pegar = (obj, p) => partes(p).reduce((o, k) => (o && typeof o === "object" ? o[k] : undefined), obj) ?? null;
+    try {
+      localStorage.setItem(CHAVE, JSON.stringify(mem));
+    } catch (e) {}
+  }
   const avisar = (p) => {
-    for (const o of ouvintes) if (relacionados(o.p, p)) o.cb(clone(pegar(raiz(), o.p)));
+    for (const o of ouvintes) if (relacionados(o.p, p)) o.cb(clone(pegar(o.p)));
   };
-  if (canal) canal.onmessage = (e) => avisar(e.data);
-  function escrever(p, v) {
-    const r = raiz();
-    const ks = partes(p);
-    let o = r;
-    for (const k of ks.slice(0, -1)) o = o[k] && typeof o[k] === "object" ? o[k] : (o[k] = {});
-    if (v === null || v === undefined) delete o[ks.at(-1)];
-    else o[ks.at(-1)] = clone(v);
-    localStorage.setItem(CHAVE, JSON.stringify(r));
-    avisar(p);
-    if (canal) canal.postMessage(p);
+  if (canal)
+    canal.onmessage = (e) => {
+      aplicar(e.data.ops);
+      avisar(e.data.base);
+    };
+  /** Grava vários caminhos de uma vez e avisa uma vez só (como o update do Firebase). */
+  function escrever(base, valores) {
+    const b = partes(base).join("/");
+    const ops = valores.map(([p, v]) => [partes(b + "/" + p).join("/"), v === undefined ? null : clone(v)]);
+    aplicar(ops);
+    avisar(b);
+    if (canal) canal.postMessage({ base: b, ops });
   }
   const aoSair = [];
   if (typeof window !== "undefined")
-    window.addEventListener("pagehide", () => aoSair.forEach(([p, v]) => escrever(p, v)));
+    window.addEventListener("pagehide", () => aoSair.forEach(([p, v]) => escrever(p, [["", v]])));
 
   return {
     tipo: "local",
     uid,
-    ler: async (p) => clone(pegar(raiz(), p)),
-    gravar: async (p, v) => escrever(p, v),
-    atualizar: async (p, obj) => Object.entries(obj).forEach(([k, v]) => escrever(p + "/" + k, v)),
-    remover: async (p) => escrever(p, null),
+    ler: async (p) => clone(pegar(p)),
+    gravar: async (p, v) => escrever(p, [["", v]]),
+    atualizar: async (p, obj) => escrever(p, Object.entries(obj)),
+    remover: async (p) => escrever(p, [["", null]]),
+    criarSeNaoExiste: async (p, v) => {
+      if (pegar(p) !== null) return false;
+      escrever(p, [["", v]]);
+      return true;
+    },
     ouvir(p, cb) {
       const o = { p, cb };
       ouvintes.add(o);
-      cb(clone(pegar(raiz(), p)));
+      cb(clone(pegar(p)));
       return () => ouvintes.delete(o);
     },
     ouvirFilhos(p, { adicionado, mudado, removido }) {

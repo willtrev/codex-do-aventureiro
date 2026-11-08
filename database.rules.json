@@ -15,9 +15,15 @@
             "papel": {
               ".validate": "newData.val() === 'jogador' || root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid"
             },
-            "nome": { ".validate": "newData.isString() && newData.val().length <= 120" },
-            "online": { ".validate": "newData.isBoolean()" },
-            "$outro": { ".validate": false }
+            "nome": {
+              ".validate": "newData.isString() && newData.val().length <= 120"
+            },
+            "online": {
+              ".validate": "newData.isBoolean()"
+            },
+            "$outro": {
+              ".validate": false
+            }
           }
         },
         "fichas": {
@@ -26,7 +32,30 @@
             ".write": "auth != null && (($uid === auth.uid && root.child('mesas').child($codigo).child('membros').child(auth.uid).exists()) || root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid)"
           }
         },
-        "$outro": { ".validate": false }
+        "$outro": {
+          ".validate": false
+        },
+        "mapa": {
+          ".read": "auth != null && root.child('mesas').child($codigo).child('membros').child(auth.uid).exists()",
+          "config": {
+            ".validate": "newData.child('colunas').isNumber() && newData.child('linhas').isNumber() && newData.child('colunas').val() <= 60 && newData.child('linhas').val() <= 60"
+          },
+          "fundo": {
+            ".validate": "newData.isString() && newData.val().length < 2000000"
+          },
+          "tokens": {
+            "$id": {
+              ".write": "auth != null && root.child('mesas').child($codigo).child('membros').child(auth.uid).exists() && ((!data.exists() && newData.child('dono').val() === auth.uid) || (data.child('dono').val() === auth.uid && (!newData.exists() || newData.child('dono').val() === auth.uid)))",
+              ".validate": "!newData.exists() || (newData.hasChildren(['x', 'y', 'dono']) && newData.child('x').isNumber() && newData.child('y').isNumber())"
+            }
+          }
+        }
+      }
+    },
+    "privado": {
+      "$codigo": {
+        ".read": "auth != null && root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid",
+        ".write": "auth != null && root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid"
       }
     }
   }

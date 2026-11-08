@@ -23,6 +23,7 @@ export function seloMesa(c) {
     const cls = st === "ao-vivo" ? "ok" : st === "erro" ? "err" : "pend";
     conteudo = `<span class="status" title="${esc(st === "erro" ? x.erro : "A ficha é enviada ao mestre a cada mudança")}"><span class="dot ${cls}"></span>Mesa&nbsp;<b>${esc(c.mesa.codigo)}</b>${c.mesa.nome ? "&nbsp;· " + esc(c.mesa.nome) : ""}&nbsp;· ${txt}</span>
       ${st === "erro" ? `<button class="btn sm" data-a="mesareconectar">Tentar de novo</button>` : ""}
+      ${st === "ao-vivo" ? `<button class="btn sm pri" data-a="abrircombate" data-p="jogador">Mapa</button>` : ""}
       <button class="btn sm ghost" data-a="mesasair">Sair da mesa</button>`;
   }
   return `<span id="mesaselo" class="row" style="gap:6px">${conteudo}</span>`;

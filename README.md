@@ -159,7 +159,26 @@ banco-firebase.js   implementação com o Firebase (SDK carregado do CDN do Goog
 banco-local.js      banco simulado no navegador, para testar sem internet
 resumo.js           o que vai para o card do mestre (PV, CA, combate, efeitos)
 mesa.js             entrar, sair, enviar a ficha (jogador) e abrir, ouvir e fechar a mesa (mestre)
+combate.js          mapa, peças, monstros e iniciativa (a tela fica em js/telas/combate.js)
 ```
+
+### Mapa de combate
+
+Pela mesa online, o botão **Abrir mapa de combate** (mestre, no hub) ou **Mapa** (jogador, no selo da mesa) abre a tela `#combate`:
+
+- **Mapa:**
+  - grade em SVG com imagem de fundo opcional; o mestre envia a imagem, que o app reduz para caber no plano gratuito, ou cola um link;
+  - o mestre ajusta colunas e linhas.
+- **Peças:**
+  - cada personagem da mesa ganha uma peça com a cor do jogador;
+  - o jogador arrasta só a própria peça (ou usa as setas do teclado com ela selecionada) e o mestre arrasta qualquer uma;
+  - durante o arrasto a peça se move só na tela de quem arrasta; a posição vai para o banco ao soltar e os outros veem a peça deslizar até lá.
+- **Monstros e NPCs:**
+  - o mestre adiciona com nome, PV, CA, iniciativa e quantidade, e aplica dano e cura;
+  - os PV e a CA ficam em `privado/<CÓDIGO>`, que só o mestre lê, e os jogadores veem só o estado (ferido, muito ferido, caído).
+- **Iniciativa:**
+  - o mestre rola d20 + iniciativa para todas as peças e passa a vez;
+  - todos veem a ordem, a rodada e de quem é a vez, e o jogador vê "É a sua vez!".
 
 ### Configurar o Firebase (uma vez)
 
