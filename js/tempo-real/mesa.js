@@ -224,8 +224,8 @@ export function mensagemDeErro(e) {
     return "Não foi possível carregar a conexão com a mesa. Verifique a internet e tente de novo.";
   if (/permission|PERMISSION_DENIED/i.test(m))
     return "O banco recusou o acesso. Confira se as regras de database.rules.json foram publicadas no Firebase.";
-  if (/admin-restricted|operation-not-allowed/i.test(m))
-    return "O login anônimo não está ativado no Firebase (Authentication → Método de login → Anônimo).";
+  if (/admin-restricted|operation-not-allowed|configuration-not-found/i.test(m))
+    return "O login anônimo não está ativado no Firebase. No console, abra Authentication, clique em Começar e, em Método de login, ative Anônimo.";
   if (/network|Failed to fetch|import/i.test(m)) return "Sem conexão com a internet ou com o Firebase.";
   return (e && e.message) || "Algo deu errado ao falar com a mesa.";
 }

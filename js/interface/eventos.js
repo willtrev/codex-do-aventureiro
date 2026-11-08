@@ -1,5 +1,5 @@
 /* ================= Eventos ================= */
-import { clamp, clone, uidGen } from "../util.js";
+import { clamp, clone, esc, uidGen } from "../util.js";
 import { SCHOOLS } from "../regras/basicas.js";
 import { CAT } from "../dados/catalogo.js";
 import { classFeatures, cls } from "../regras/classes.js";
@@ -40,6 +40,7 @@ import {
   closeModal,
   confirmModal,
   filtrarCatalogo,
+  modal,
   newCharModal,
   newCharOf,
   restModal,
@@ -702,6 +703,9 @@ export function abrirConvitePendente() {
   entrarMesaModal(cur(), codigo);
 }
 
+/** Janela de aviso de erro, com um botão só. */
 function modal_erro(texto) {
-  confirmModal(texto, "close");
+  modal(
+    `<h2 style="font-size:18px;color:var(--ink)">Não foi possível abrir a mesa</h2><p style="margin:0;line-height:1.5">${esc(texto)}</p><div class="row"><button class="btn pri" data-a="close">Entendi</button></div>`
+  );
 }
