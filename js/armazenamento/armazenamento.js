@@ -94,7 +94,7 @@ export async function flush() {
 export function setStatus(t, c) {
   statusTxt = t;
   statusCls = c;
-  const el = document.getElementById("st");
+  const el = typeof document !== "undefined" && document.getElementById("st");
   if (el) el.innerHTML = statusHTML();
 }
 export function statusHTML() {

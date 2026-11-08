@@ -1,6 +1,8 @@
 /* ================= Tema ================= */
+// Fora do navegador (testes em Node) não há document: o tema só é aplicado quando houver página.
+const temPagina = typeof document !== "undefined";
 export let theme = "auto",
-  hostTheme = document.documentElement.getAttribute("data-theme"),
+  hostTheme = temPagina ? document.documentElement.getAttribute("data-theme") : null,
   settingTheme = false;
 try {
   theme = localStorage.getItem("grimorio-tema") || "auto";
@@ -13,13 +15,15 @@ export function applyTheme() {
   else r.removeAttribute("data-theme");
   settingTheme = false;
 }
-new MutationObserver(() => {
-  if (settingTheme) return;
-  const v = document.documentElement.getAttribute("data-theme");
-  if (theme === "auto") hostTheme = v;
-  else if (v !== theme) applyTheme();
-}).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-applyTheme();
+if (temPagina) {
+  new MutationObserver(() => {
+    if (settingTheme) return;
+    const v = document.documentElement.getAttribute("data-theme");
+    if (theme === "auto") hostTheme = v;
+    else if (v !== theme) applyTheme();
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  applyTheme();
+}
 
 /* Funções para outros arquivos alterarem as variáveis deste (imports são somente leitura). */
 export function setTheme(v) {

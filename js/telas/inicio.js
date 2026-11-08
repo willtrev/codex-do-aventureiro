@@ -6,7 +6,7 @@ import { theme } from "../interface/tema.js";
 import { IDIOMAS, idioma } from "../interface/idioma.js";
 
 /** true enquanto a conta do Claude ainda está carregando os personagens salvos. */
-export let nuvemPendente = !!(window.claude && typeof window.claude.use === "function");
+export let nuvemPendente = typeof window !== "undefined" && !!window.claude && typeof window.claude.use === "function";
 
 export function vInicio() {
   const toggles = `<span class="theme" role="group" aria-label="Idioma do conteúdo">${IDIOMAS.map(
