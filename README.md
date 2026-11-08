@@ -10,7 +10,7 @@ Ficha de personagem interativa para **D&D 3.5**. Faz os cálculos da ficha e aco
   - Preparadas: grimório do mago com escola especializada e escolas proibidas, e lista divina com espaço de domínio para o clérigo.
   - Espontâneas: feiticeiro e bardo, com limite de magias conhecidas.
   - Cada magia mostra CD, alcance calculado pelo nível e bônus de ataque de toque. A janela **Info** traz o resumo em português e o texto completo do SRD em inglês.
-- **Talentos e equipamento do SRD:** busca em português ou inglês. Armas vão direto para *Minhas armas*, armaduras e escudos ajustam a CA, e **Comprar** desconta o preço do dinheiro.
+- **Talentos e equipamento do SRD:** busca em português ou inglês. Armas vão direto para _Minhas armas_, armaduras e escudos ajustam a CA, e **Comprar** desconta o preço do dinheiro.
 - **Painel da sessão:**
   - PV com dano e cura, CA (normal, toque e surpresa), testes de resistência e inspiração.
   - Armas com acerto e dano calculados e contador de munição.
@@ -23,6 +23,7 @@ Ficha de personagem interativa para **D&D 3.5**. Faz os cálculos da ficha e aco
   - outros modelos de ficha e documentos, lidos pelos rótulos ("Nome:", "Classe: Mago 3", "For 16", "PV 18") e pelas listas de magias, talentos e equipamento.
 
   Antes de salvar, mostra o que não deu para importar: multiclasse, magias fora do SRD, perícias sem equivalente, valores calculados diferentes da ficha. PDFs só com imagem (foto ou digitalização) não têm texto para ler.
+
 - **Idioma do conteúdo:** **PT + EN** (padrão), **PT** ou **EN**. Os rótulos da interface continuam em português.
 - **Tema:** claro, escuro ou automático, no estilo Flat Design.
 - **Hub do mestre** (`#mestre`): o mestre cria e nomeia campanhas e traz as fichas dos jogadores (PDF, texto de backup ou fichas do próprio aparelho). Cada personagem vira um card com PV, CA, toque, surpresa, iniciativa, testes de resistência, BBA, agarrar, deslocamento e inspiração, com ordenação por nome, iniciativa, PV ou CA. **Detalhes** abre atributos, armas, magias de hoje, habilidades, perícias e talentos. Os cards são cópias: importar de novo uma ficha com o mesmo nome atualiza o card.
@@ -33,7 +34,7 @@ Ficha de personagem interativa para **D&D 3.5**. Faz os cálculos da ficha e aco
 O app usa módulos JavaScript (`import`/`export`) e o [Vite](https://vite.dev) para desenvolver e gerar o site. Precisa do [Node.js](https://nodejs.org) 20.19 ou mais novo.
 
 ```bash
-npm install        # uma vez, instala o Vite e o Prettier
+npm install        # uma vez, instala o Vite, o Prettier e as ferramentas de teste
 npm run dev        # abre o app em http://localhost:5173 e recarrega ao salvar
 npm run build      # gera o site final otimizado em dist/
 npm run preview    # testa o conteúdo de dist/ como ficaria publicado
@@ -45,8 +46,8 @@ O `index.html` não abre mais com dois cliques (`file://`): navegadores não car
 
 O site final (pasta `dist/`, gerada por `npm run build`) é estático, então qualquer hospedagem de arquivos serve.
 
-- **Cloudflare Pages:** gratuito também com o repositório **privado**. Em *Workers & Pages → Create → Pages → Connect to Git*, escolha o repositório e use *Build command* `npm run build` e *Build output directory* `dist`. Cada `git push` atualiza o site, e cada branch ganha um endereço de prévia próprio.
-- **GitHub Pages:** só é gratuito com o repositório **público**, e precisa de uma *GitHub Action* que rode `npm run build` e publique `dist/` (*Settings → Pages → Source: GitHub Actions*, modelo "Static HTML" adaptado).
+- **Cloudflare Pages:** gratuito também com o repositório **privado**. Em _Workers & Pages → Create → Pages → Connect to Git_, escolha o repositório e use _Build command_ `npm run build` e _Build output directory_ `dist`. Cada `git push` atualiza o site, e cada branch ganha um endereço de prévia próprio.
+- **GitHub Pages:** só é gratuito com o repositório **público**, e precisa de uma _GitHub Action_ que rode `npm run build` e publique `dist/` (_Settings → Pages → Source: GitHub Actions_, modelo "Static HTML" adaptado).
 
 Escolha o endereço definitivo antes de as pessoas começarem a usar: os dados ficam presos ao endereço do site (veja abaixo).
 
@@ -117,6 +118,8 @@ js/
   pdf/ler-texto.js         lê PDFs sem o formulário oficial (pela posição ou pelos rótulos)
   app.js                   inicialização
 tools/gerar_dados.py       gera js/dados/srd-*.js a partir do banco do SRD
+tests/unit/, tests/e2e/    testes (ver "Testes" abaixo)
+playwright.config.js       configuração dos testes no navegador
 ```
 
 ### Corrigir uma tradução
@@ -135,6 +138,32 @@ python3 tools/gerar_dados.py srd/dnd35.db   # ou: npm run dados -- srd/dnd35.db
 
 O zip e o `.db` estão no `.gitignore`.
 
+## Testes
+
+```bash
+npm test           # testes das regras e dos dados (Node, em menos de 1 segundo)
+npm run test:e2e   # testes no navegador: sobe o app e usa como uma pessoa usaria
+npm run test:tudo  # os dois
+```
+
+Na primeira vez, instale o navegador dos testes: `npx playwright install chromium`.
+
+- **`tests/unit/`** (sem navegador, com o test runner do próprio Node):
+  - os 12 personagens de exemplo calculam sempre os mesmos números (PV, CA, BBA, testes, perícias, espaços de magia, recursos, ataques e carga), comparados com `tests/fixtures/personagens-esperados.txt`;
+  - BBA e testes de resistência das 11 classes do nível 1 ao 20, espaços de magia, magias adicionais e PV sugeridos, conferidos contra as tabelas do Livro do Jogador;
+  - integridade do SRD (606 magias com nome em português, classes, domínios), traduções, tendências por classe;
+  - importação de ficha: ida e volta pela ficha oficial para todos os exemplos, avisos e leitura de texto livre;
+  - talentos e equipamento do SRD (preço, peso, munição, CA), migração de dados salvos e campanhas do hub do mestre.
+- **`tests/e2e/`** (Playwright, no Chrome): tela inicial, criar e excluir personagem, backup, todas as abas de todos os exemplos, painel (dano, cura, Armadura Arcana, munição, inspiração, descanso), magias (busca, Info, idioma, preparar), SRD, hub do mestre, importação e exportação de PDF e o layout no celular. Qualquer erro de JavaScript na página faz o teste falhar.
+
+Os testes que usam a ficha oficial em PDF só rodam se ela estiver em `public/ficha.pdf`.
+
+**Mudou uma regra de propósito?** Se os números de um personagem de exemplo mudarem por causa de uma correção, gere de novo os valores esperados e confira a diferença no git antes de fazer o commit:
+
+```bash
+node tests/unit/gerar-esperado.js > tests/fixtures/personagens-esperados.txt
+```
+
 ## Commits
 
 As mensagens seguem o [Conventional Commits](https://www.conventionalcommits.org/pt-br/v1.0.0/), com a descrição em português:
@@ -143,19 +172,19 @@ As mensagens seguem o [Conventional Commits](https://www.conventionalcommits.org
 <tipo>(<escopo opcional>): <descrição no imperativo, em minúsculas>
 ```
 
-| Tipo | Quando usar |
-| --- | --- |
-| `feat` | funcionalidade nova (`feat(magias): adiciona busca no catálogo`) |
-| `fix` | correção de erro (`fix(pdf): corrige campo de CA na ficha`) |
-| `docs` | só documentação, como este README |
-| `style` | formatação, sem mudar o comportamento |
-| `refactor` | reorganiza o código sem mudar o comportamento |
-| `chore` | manutenção: dados do SRD gerados de novo, configuração, `.gitignore` |
+| Tipo       | Quando usar                                                          |
+| ---------- | -------------------------------------------------------------------- |
+| `feat`     | funcionalidade nova (`feat(magias): adiciona busca no catálogo`)     |
+| `fix`      | correção de erro (`fix(pdf): corrige campo de CA na ficha`)          |
+| `docs`     | só documentação, como este README                                    |
+| `style`    | formatação, sem mudar o comportamento                                |
+| `refactor` | reorganiza o código sem mudar o comportamento                        |
+| `chore`    | manutenção: dados do SRD gerados de novo, configuração, `.gitignore` |
 
 Para formatar o código antes do commit: `npm run formatar` (as regras estão em `.prettierrc.json`; os `srd-*.js` gerados ficam de fora).
 
 ## Licença e aviso
 
-Projeto de fã, sem fins lucrativos e sem ligação com a Wizards of the Coast. *Dungeons & Dragons* e os nomes relacionados são marcas da Wizards of the Coast.
+Projeto de fã, sem fins lucrativos e sem ligação com a Wizards of the Coast. _Dungeons & Dragons_ e os nomes relacionados são marcas da Wizards of the Coast.
 
 O texto das regras em `js/dados/srd-*.js` é do **System Reference Document 3.5**, Open Game Content distribuído sob a **Open Game License 1.0a** (veja `OGL.txt`). Os resumos em português são próprios.

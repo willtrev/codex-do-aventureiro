@@ -3,3 +3,5 @@ js/dados/ficha-campos.js
 dist/
 node_modules/
 package-lock.json
+test-results/
+playwright-report/
