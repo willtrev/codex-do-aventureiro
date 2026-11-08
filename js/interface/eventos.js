@@ -10,7 +10,9 @@ import { AMMO, ammoFor, proibList, slotTable, spell } from "../regras/calculos.j
 import { setStatus, state, touch } from "../armazenamento/armazenamento.js";
 import { applyTheme, setTheme, theme } from "./tema.js";
 import { setIdioma } from "./idioma.js";
-import { cur, getPath, irPara, readHash, setPath } from "./estado.js";
+import { convite, cur, getPath, irPara, readHash, setConvite, setPath } from "./estado.js";
+import { entrarMesaModal, atualizarSelo } from "../telas/mesa-jogador.js";
+import { entrarNaMesa, fecharMesa, mensagemDeErro, reconectar, sairDaMesa } from "../tempo-real/mesa.js";
 import { render } from "../telas/topo.js";
 import {
   adicionarNaCampanha,
@@ -22,6 +24,8 @@ import {
   salvarCampanha,
   setMembroARemover,
   topoMestre,
+  abrirMesaDaCampanha,
+  conviteDaCampanha,
 } from "../telas/mestre.js";
 import { exportPdf, setSHEET_BYTES } from "../pdf/exportar.js";
 import {
@@ -90,6 +94,7 @@ document.addEventListener("change", (e) => {
     state.active = el.value;
     touch("__meta");
     render();
+    reconectar(cur()).then(atualizarSelo);
     return;
   }
   if (el.dataset.a === "prepsel") {
@@ -448,6 +453,78 @@ document.addEventListener("click", async (e) => {
     case "importpdf":
       importPdfModal();
       break;
+    /* ----- Mesa online: jogador ----- */
+    case "mesaentrar":
+      entrarMesaModal(c);
+      break;
+    case "mesaentrarok": {
+      const msg = document.getElementById("mesa_msg");
+      const codigo = document.getElementById("mesa_cod").value;
+      b.disabled = true;
+      msg.style.color = "";
+      msg.textContent = "Conectando…";
+      try {
+        await entrarNaMesa(codigo, c);
+        closeModal();
+        render();
+      } catch (err) {
+        msg.style.color = "var(--bad)";
+        msg.textContent = err.message;
+        b.disabled = false;
+      }
+      break;
+    }
+    case "mesareconectar":
+      reconectar(c).then(atualizarSelo);
+      break;
+    case "mesasair":
+      confirmModal(`Sair da mesa ${c.mesa.codigo}? O mestre deixa de receber as mudanças desta ficha.`, "mesasairok");
+      break;
+    case "mesasairok":
+      closeModal();
+      await sairDaMesa(c);
+      render();
+      break;
+    /* ----- Mesa online: mestre ----- */
+    case "mesaabrir": {
+      const g = campanha();
+      b.disabled = true;
+      try {
+        await abrirMesaDaCampanha(g);
+      } catch (err) {
+        b.disabled = false;
+        modal_erro(mensagemDeErro(err));
+        break;
+      }
+      render();
+      break;
+    }
+    case "mesacopiar": {
+      const link = conviteDaCampanha(campanha());
+      const m = document.getElementById("mesa_cp");
+      try {
+        await navigator.clipboard.writeText(link);
+        m.textContent = "Link copiado. Mande para os jogadores: " + link;
+      } catch (err) {
+        m.textContent = "Copie e mande para os jogadores: " + link;
+      }
+      break;
+    }
+    case "mesafechar":
+      confirmModal(
+        "Fechar a mesa online? Os jogadores saem da mesa e os cards deixam de se atualizar (a última versão de cada ficha continua na campanha).",
+        "mesafecharok"
+      );
+      break;
+    case "mesafecharok": {
+      const g = campanha();
+      closeModal();
+      await fecharMesa(g);
+      g.membros.forEach((m) => delete m.uid);
+      salvarCampanha(g);
+      render();
+      break;
+    }
     /* ----- Hub do mestre ----- */
     case "campcriar":
     case "campnova": {
@@ -614,4 +691,17 @@ window.addEventListener("hashchange", () => {
   readHash();
   render();
   window.scrollTo(0, 0);
+  abrirConvitePendente();
 });
+
+/** Link de convite (#entrar=CÓDIGO): abre a janela de entrar na mesa já com o código. */
+export function abrirConvitePendente() {
+  if (!convite) return;
+  const codigo = convite;
+  setConvite(null);
+  entrarMesaModal(cur(), codigo);
+}
+
+function modal_erro(texto) {
+  confirmModal(texto, "close");
+}

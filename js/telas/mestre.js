@@ -3,11 +3,14 @@
    dos jogadores (PDF, texto de backup ou fichas deste aparelho). Cada ficha vira um card
    com PV, CA e as informações de combate; "Detalhes" abre o resto.
 
-   As fichas na campanha são cópias: para atualizar, importe de novo (o card com o
-   mesmo nome é substituído).
+   As fichas importadas são cópias: para atualizar, importe de novo (o card com o
+   mesmo nome é substituído). Com a mesa online aberta (js/tempo-real/mesa.js), as fichas
+   dos jogadores que entraram com o código se atualizam sozinhas: só o card que mudou
+   é redesenhado, sem mexer no resto da tela.
 
    Estrutura salva em state.campanhas[id]:
-     { id, nome, criada, ordem, membros: [{ mid, importado, origem, c }] } */
+     { id, nome, criada, ordem, mesa?: { codigo },
+       membros: [{ mid, importado, origem, c, uid? }] }   (uid = jogador ligado pela mesa) */
 import { clamp, clone, esc, lvlName, mod, sg, sizeGrap, uidGen } from "../util.js";
 import { ATTRS, SK } from "../regras/basicas.js";
 import { at, classFeatures, cls, spellAttr } from "../regras/classes.js";
@@ -18,6 +21,8 @@ import { theme } from "../interface/tema.js";
 import { IDIOMAS, idioma, nomeDe } from "../interface/idioma.js";
 import { normTxt } from "../pdf/importar.js";
 import { modal } from "../interface/modais.js";
+import { agarrar, iniciativa, resumoAoVivo } from "../tempo-real/resumo.js";
+import { abrirMesa, escutarMesa, linkConvite, mesaMestre } from "../tempo-real/mesa.js";
 
 export const ORDENS = [
   ["chegada", "Ordem de importação"],
@@ -37,58 +42,70 @@ export function salvarCampanha(g) {
 
 /* ---------- Valores mostrados no card ---------- */
 
-export function estadoPV(c) {
-  const at_ = +c.hp.atual,
-    mx = +c.hp.max || 0;
+export function estadoPV(hp) {
+  const at_ = +hp.atual,
+    mx = +hp.max || 0;
   if (at_ < -9) return "Morto";
   if (at_ < 0) return "Morrendo";
   if (at_ === 0) return "Inconsciente";
-  if (+c.hp.contusao > 0 && +c.hp.contusao >= at_) return "Atordoado (contusão)";
+  if (+hp.contusao > 0 && +hp.contusao >= at_) return "Atordoado (contusão)";
   if (mx && at_ / mx < 0.34) return "Muito ferido";
   return "";
 }
-export function corPV(c) {
-  const pct = c.hp.max ? (c.hp.atual / c.hp.max) * 100 : 0;
-  return c.hp.atual <= 0 || pct < 34 ? "var(--bad)" : pct < 67 ? "var(--warn)" : "var(--good)";
+export function corPV(hp) {
+  const pct = hp.max ? (hp.atual / hp.max) * 100 : 0;
+  return hp.atual <= 0 || pct < 34 ? "var(--bad)" : pct < 67 ? "var(--warn)" : "var(--good)";
 }
-export const iniciativa = (c) => mod(at(c, "des")) + (+c.outros.init || 0);
-export const agarrar = (c) => bba(c) + mod(at(c, "for")) + sizeGrap(c.tamanho) + (+c.outros.agarrar || 0);
+export { agarrar, iniciativa };
+
+/** Valores do card: os que chegam ao vivo da mesa ou, sem mesa, calculados da cópia. */
+export function valoresDoCard(m) {
+  const vivo = m.uid && mesaMestre.vivos[m.uid];
+  return vivo && vivo.resumo ? vivo.resumo : resumoAoVivo(m.c);
+}
 
 export function cardMembro(m) {
-  const c = m.c;
-  const a = ac(c),
-    s = saves(c);
-  const pct = c.hp.max ? clamp((c.hp.atual / c.hp.max) * 100, 0, 100) : 0;
-  const est = estadoPV(c);
-  const st = (rot, v, extra) => `<div class="stat"><span>${rot}</span><b${extra || ""}>${v}</b></div>`;
+  const v = valoresDoCard(m);
+  const vivo = m.uid ? mesaMestre.vivos[m.uid] : null;
+  const hp = v.hp;
+  const pct = hp.max ? clamp((hp.atual / hp.max) * 100, 0, 100) : 0;
+  const est = estadoPV(hp);
+  const st = (rot, x, extra) => `<div class="stat"><span>${rot}</span><b${extra || ""}>${x}</b></div>`;
   const data = new Date(m.importado).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-  return `<article class="card mcard" aria-labelledby="mc_${m.mid}">
-    <div class="row" style="align-items:flex-start">
-      <div style="flex:1;min-width:0"><h3 id="mc_${m.mid}" class="mnome">${esc(c.nome)}</h3>
-      <div class="small muted mlinha">${esc([cls(c).nome + " " + c.nivel, c.raca, c.tendencia].filter(Boolean).join(" · "))}</div>
-      <div class="small muted mlinha">${c.jogador ? `Jogador: ${esc(c.jogador)}` : "&nbsp;"}</div></div>
+  const origem = { pdf: "PDF", backup: "backup", local: "deste aparelho", mesa: "mesa online" }[m.origem] || m.origem;
+  const selo = m.uid
+    ? vivo && vivo.online
+      ? `<span class="tag mvivo" title="Atualiza sozinho">● ao vivo</span>`
+      : `<span class="tag" title="Jogador fora da mesa: mostrando a última versão recebida">○ offline</span>`
+    : "";
+  return `<article class="card mcard" id="card_${m.mid}" aria-labelledby="mc_${m.mid}">
+    <div class="row" style="align-items:flex-start;flex-wrap:nowrap">
+      <div style="flex:1;min-width:0"><h3 id="mc_${m.mid}" class="mnome">${esc(v.nome)}</h3>
+      <div class="small muted mlinha">${esc([v.classe + " " + v.nivel, v.raca, v.tendencia].filter(Boolean).join(" · "))}</div>
+      <div class="small muted mlinha">${v.jogador ? `Jogador: ${esc(v.jogador)}` : "&nbsp;"}</div></div>${selo}
     </div>
-    <div class="row" style="align-items:baseline;gap:6px"><span class="small muted" style="font-weight:600;letter-spacing:.06em">PV</span><span class="big" style="font-size:28px">${c.hp.atual}</span><span class="muted">/ ${c.hp.max}</span>
-      ${c.hp.temp ? `<span class="tag">+${c.hp.temp} temp.</span>` : ""}${est ? `<span class="tag" style="color:${corPV(c)};border-color:${corPV(c)}">${esc(est)}</span>` : ""}</div>
-    <div class="hpbar" role="img" aria-label="${Math.round(pct)}% dos PV"><i style="width:${pct}%;background:${corPV(c)}"></i></div>
-    <div class="mstats">${st("CA", a.total)}${st("Toque", a.toque)}${st("Surpresa", a.surpresa)}${st("Iniciativa", sg(iniciativa(c)))}</div>
-    <div class="mstats">${st("Fortitude", sg(s.fort))}${st("Reflexos", sg(s.ref))}${st("Vontade", sg(s.von))}${st("BBA", sg(bba(c)))}</div>
-    <div class="mstats">${st("Agarrar", sg(agarrar(c)))}${st("Desloc.", esc(c.deslocamento || "—"), ' style="font-size:16px"')}${st("Inspiração", +c.inspiracao || 0)}</div>
-    <div class="small muted mresist" title="${esc(c.resistCond || "")}">${c.resistCond ? esc(c.resistCond) : "&nbsp;"}</div>
-    <div class="mfoot"><span class="small muted">Importado em ${data}${m.origem ? " · " + esc({ pdf: "PDF", backup: "backup", local: "deste aparelho" }[m.origem] || m.origem) : ""}</span><div class="row" style="margin-top:8px">
-      <button class="btn sm pri" data-a="mdetalhe" data-m="${m.mid}" aria-label="Detalhes de ${esc(c.nome)}">Detalhes</button>
-      <button class="btn sm ghost" data-a="mremover" data-m="${m.mid}" aria-label="Tirar ${esc(c.nome)} da campanha">Remover</button></div></div>
+    <div class="row" style="align-items:baseline;gap:6px"><span class="small muted" style="font-weight:600;letter-spacing:.06em">PV</span><span class="big" style="font-size:28px">${hp.atual}</span><span class="muted">/ ${hp.max}</span>
+      ${hp.temp ? `<span class="tag">+${hp.temp} temp.</span>` : ""}${est ? `<span class="tag" style="color:${corPV(hp)};border-color:${corPV(hp)}">${esc(est)}</span>` : ""}</div>
+    <div class="hpbar" role="img" aria-label="${Math.round(pct)}% dos PV"><i style="width:${pct}%;background:${corPV(hp)}"></i></div>
+    <div class="mefeitos" aria-label="Efeitos ativos">${(v.efeitos || []).map((e) => `<span class="tag gold">${esc(e)}</span>`).join("") || '<span class="small muted">Nenhum efeito ativo</span>'}</div>
+    <div class="mstats">${st("CA", v.ca.total)}${st("Toque", v.ca.toque)}${st("Surpresa", v.ca.surpresa)}${st("Iniciativa", sg(v.iniciativa))}</div>
+    <div class="mstats">${st("Fortitude", sg(v.fort))}${st("Reflexos", sg(v.ref))}${st("Vontade", sg(v.von))}${st("BBA", sg(v.bba))}</div>
+    <div class="mstats">${st("Agarrar", sg(v.agarrar))}${st("Desloc.", esc(v.deslocamento || "—"), ' style="font-size:16px"')}${st("Inspiração", v.inspiracao)}</div>
+    <div class="small muted mresist" title="${esc(v.resistCond || "")}">${v.resistCond ? esc(v.resistCond) : "&nbsp;"}</div>
+    <div class="mfoot"><span class="small muted">${m.origem === "mesa" ? "Pela mesa online" : "Importado"} em ${data}${m.origem && m.origem !== "mesa" ? " · " + esc(origem) : ""}</span><div class="row" style="margin-top:8px">
+      <button class="btn sm pri" data-a="mdetalhe" data-m="${m.mid}" aria-label="Detalhes de ${esc(v.nome)}">Detalhes</button>
+      <button class="btn sm ghost" data-a="mremover" data-m="${m.mid}" aria-label="Tirar ${esc(v.nome)} da campanha">Remover</button></div></div>
   </article>`;
 }
 
 export function ordenados(g) {
-  const ms = g.membros.slice();
+  const ms = g.membros.map((m) => ({ m, v: valoresDoCard(m) }));
   const o = g.ordem || "chegada";
-  if (o === "nome") ms.sort((a, b) => a.c.nome.localeCompare(b.c.nome));
-  if (o === "iniciativa") ms.sort((a, b) => iniciativa(b.c) - iniciativa(a.c) || a.c.nome.localeCompare(b.c.nome));
-  if (o === "pv") ms.sort((a, b) => a.c.hp.atual - b.c.hp.atual);
-  if (o === "ca") ms.sort((a, b) => ac(b.c).total - ac(a.c).total);
-  return ms;
+  if (o === "nome") ms.sort((a, b) => a.v.nome.localeCompare(b.v.nome));
+  if (o === "iniciativa") ms.sort((a, b) => b.v.iniciativa - a.v.iniciativa || a.v.nome.localeCompare(b.v.nome));
+  if (o === "pv") ms.sort((a, b) => a.v.hp.atual - b.v.hp.atual);
+  if (o === "ca") ms.sort((a, b) => b.v.ca.total - a.v.ca.total);
+  return ms.map((x) => x.m);
 }
 
 /* ---------- Tela ---------- */
@@ -130,7 +147,7 @@ export function vMestre() {
   </section></div>`;
 
   const locais = Object.values(state.chars);
-  const cards = ordenados(g).map(cardMembro).join("");
+  if (g.mesa) escutarMesa(g, aoMudarNaMesa).then(atualizarSecaoMesa);
   return `<div class="grid">
   <section class="card c12">
     <div class="row" style="align-items:flex-end">
@@ -145,13 +162,10 @@ export function vMestre() {
       <span class="spacer"></span>
       <button class="btn sm danger" data-a="campexcluir">Excluir campanha</button>
     </div>
-    <p class="small muted" style="margin:0">Os cards são cópias das fichas no momento da importação. Para atualizar, importe de novo: o card com o mesmo nome é substituído.</p>
+    <p class="small muted" style="margin:0">Fichas importadas são cópias: para atualizar, importe de novo (o card com o mesmo nome é substituído). Fichas que entram pela mesa online se atualizam sozinhas.</p>
   </section>
-  ${
-    g.membros.length
-      ? `<div class="c12 mgrid">${cards}</div>`
-      : `<section class="card c12"><p style="margin:0">Nenhum personagem ainda. Peça aos jogadores a ficha em PDF ou o texto de <b>Notas e backup → Copiar backup</b>, e importe pelos botões acima.</p></section>`
-  }
+  ${secaoMesa(g)}
+  <div class="c12" id="mgrid">${gradeCards(g)}</div>
   </div>`;
 }
 
@@ -260,3 +274,95 @@ export function locaisModal() {
 export function setMembroARemover(v) {
   membroARemover = v;
 }
+
+/* ---------- Mesa online ---------- */
+
+export function secaoMesa(g) {
+  let corpo;
+  if (!g.mesa)
+    corpo = `<div class="row"><div style="flex:1;min-width:240px"><h2>Mesa online</h2>
+      <p class="small muted" style="margin:6px 0 0">Abra a mesa e passe o código aos jogadores. As fichas deles aparecem aqui e se atualizam sozinhas: PV, CA, efeitos ativos e o resto.</p></div>
+      <button class="btn pri" data-a="mesaabrir">Abrir mesa online</button></div>`;
+  else {
+    const x = mesaMestre;
+    const st =
+      x.status === "erro"
+        ? `<span class="small" style="color:var(--bad)">${esc(x.erro)}</span>`
+        : x.status === "ao-vivo"
+          ? `<span class="small"><span class="dot ok"></span> ao vivo · ${Object.values(x.vivos).filter((v) => v.online).length} jogador(es) conectado(s)</span>`
+          : `<span class="small muted">conectando…</span>`;
+    corpo = `<div class="row" style="align-items:center"><div style="flex:1;min-width:240px"><h2>Mesa online</h2>
+      <div class="row" style="margin-top:6px;align-items:baseline"><span class="small muted">Código</span><b class="mcodigo">${esc(g.mesa.codigo)}</b>${st}</div></div>
+      <button class="btn" data-a="mesacopiar">Copiar link de convite</button>
+      ${x.status === "erro" ? `<button class="btn pri" data-a="mesaabrir">Abrir nova mesa</button>` : ""}
+      <button class="btn sm danger" data-a="mesafechar">Fechar mesa</button></div>
+      <span id="mesa_cp" class="small muted" role="status"></span>`;
+  }
+  return `<section class="card c12" id="msecao">${corpo}</section>`;
+}
+export function gradeCards(g) {
+  return g.membros.length
+    ? `<div class="mgrid">${ordenados(g).map(cardMembro).join("")}</div>`
+    : `<section class="card"><p style="margin:0">Nenhum personagem ainda. ${g.mesa ? `Passe o código <b>${esc(g.mesa.codigo)}</b> aos jogadores ou importe as fichas pelos botões acima.` : "Abra a mesa online ou importe as fichas dos jogadores (PDF ou <b>Notas e backup → Copiar backup</b>)."}</p></section>`;
+}
+/* Atualizações por região: cada função troca só um pedaço da tela. */
+export function atualizarSecaoMesa() {
+  const el = document.getElementById("msecao");
+  const g = campanha();
+  if (el && g) el.outerHTML = secaoMesa(g);
+}
+export function atualizarGrade() {
+  const el = document.getElementById("mgrid");
+  const g = campanha();
+  if (el && g) el.innerHTML = gradeCards(g);
+  topoMestre(); // contagem de personagens no topo (o topo não tem campos de edição)
+}
+export function atualizarCard(m) {
+  const el = document.getElementById("card_" + m.mid);
+  if (el) el.outerHTML = cardMembro(m);
+  else atualizarGrade();
+}
+
+/** Recebe as novidades da mesa (ver escutarMesa em tempo-real/mesa.js). */
+export function aoMudarNaMesa(uid, tipo) {
+  const g = campanha();
+  if (!g || !g.mesa || typeof document === "undefined") return;
+  const vivo = mesaMestre.vivos[uid];
+  let m = g.membros.find((x) => x.uid === uid);
+  if (tipo === "saiu") {
+    if (m) atualizarCard(m);
+    atualizarSecaoMesa();
+    return;
+  }
+  if (tipo === "ficha" && vivo && vivo.ficha) {
+    // Guarda a última versão recebida na campanha, para continuar visível com o jogador offline
+    const copia = copiaParaCampanha(vivo.ficha);
+    if (!m) m = g.membros.find((x) => !x.uid && normTxt(x.c.nome) === normTxt(copia.nome));
+    if (m) Object.assign(m, { c: copia, uid, origem: "mesa", importado: new Date().toISOString() });
+    else {
+      m = { mid: uidGen(), importado: new Date().toISOString(), origem: "mesa", c: copia, uid };
+      g.membros.push(m);
+      salvarCampanha(g);
+      atualizarGrade();
+      atualizarSecaoMesa();
+      return;
+    }
+    salvarCampanha(g);
+  }
+  if (m) atualizarCard(m);
+  if (tipo === "membro") atualizarSecaoMesa();
+  // Com ordenação por PV, CA ou iniciativa, a ordem pode ter mudado: redesenha só a grade
+  if (["pv", "ca", "iniciativa"].includes(g.ordem) && tipo !== "membro") {
+    const ordem = ordenados(g)
+      .map((x) => x.mid)
+      .join();
+    const naTela = [...document.querySelectorAll("#mgrid .mcard")].map((e) => e.id.slice(5)).join();
+    if (ordem !== naTela) atualizarGrade();
+  }
+}
+export async function abrirMesaDaCampanha(g) {
+  await abrirMesa(g);
+  salvarCampanha(g);
+  await escutarMesa(g, aoMudarNaMesa);
+}
+export const conviteDaCampanha = (g) => (g.mesa ? linkConvite(g.mesa.codigo) : "");

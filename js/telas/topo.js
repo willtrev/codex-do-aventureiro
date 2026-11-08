@@ -14,6 +14,7 @@ import { vMagias } from "./magias.js";
 import { vPericias } from "./pericias.js";
 import { vFicha } from "./ficha.js";
 import { vInv, vNotas } from "./inventario-notas.js";
+import { seloMesa } from "./mesa-jogador.js";
 
 export function render() {
   if (modo === "mestre") {
@@ -41,7 +42,7 @@ export function render() {
      <button class="btn sm pri" data-a="exportpdf">Exportar PDF</button>
      <a class="btn sm" href="#mestre">Hub do mestre</a>
    </div>
-   <div class="row"><span class="status" id="st">${statusHTML()}</span><span class="spacer"></span>
+   <div class="row"><span class="status" id="st">${statusHTML()}</span>${seloMesa(c)}<span class="spacer"></span>
      <span class="theme" role="group" aria-label="Idioma do conteúdo" title="Idioma de magias, talentos, equipamento e domínios">${IDIOMAS.map(
        ([k, n]) => `<button data-a="lang" data-l="${k}" aria-pressed="${idioma === k}">${n}</button>`
      ).join("")}</span>

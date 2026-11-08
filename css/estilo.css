@@ -878,3 +878,23 @@ tr.na td {
     letter-spacing: 0;
   }
 }
+
+/* Mesa online */
+.mefeitos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 24px;
+  max-height: 24px;
+  overflow: hidden;
+}
+.mvivo {
+  color: var(--good);
+  border-color: var(--good);
+  white-space: nowrap;
+}
+.mcodigo {
+  font-size: 26px;
+  letter-spacing: 0.15em;
+  color: var(--ink);
+}

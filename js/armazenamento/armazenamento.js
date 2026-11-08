@@ -1,5 +1,6 @@
 /* ================= Armazenamento ================= */
 import { clone, esc } from "../util.js";
+import { aoAlterarFicha } from "./avisos.js";
 import { migrate } from "./migracoes.js";
 import { render } from "../telas/topo.js";
 
@@ -11,7 +12,16 @@ export let db = null,
   storeMode = "local",
   statusTxt = "Carregando…",
   statusCls = "pend";
-export const LSKEY = "grimorio-volis-v1";
+/* Com ?perfil=nome no endereço, os dados ficam numa gaveta separada do navegador.
+   Serve para testar a mesa em duas abas como se fossem duas pessoas (ver tempo-real/banco-local.js). */
+const perfil = (() => {
+  try {
+    return (new URLSearchParams(location.search).get("perfil") || "").replace(/[^a-z0-9_-]/gi, "");
+  } catch (e) {
+    return "";
+  }
+})();
+export const LSKEY = "grimorio-volis-v1" + (perfil ? "-" + perfil : "");
 export function saveLocal() {
   try {
     localStorage.setItem(LSKEY, JSON.stringify(state));
@@ -36,6 +46,8 @@ export let saveTimer = null,
 export function touch(id) {
   dirty.add(id || state.active);
   saveLocal();
+  const c = state.chars[id || state.active];
+  if (c) aoAlterarFicha.forEach((f) => f(c));
   clearTimeout(saveTimer);
   if (storeMode === "cloud") {
     setStatus("Salvando…", "pend");

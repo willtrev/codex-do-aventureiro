@@ -110,16 +110,19 @@ js/
     modais.js              janelas (Info da magia, adicionar magia, descanso, novo personagem)
     srd-escolha.js         janelas de talentos e equipamento do SRD
     eventos.js             cliques e campos
+  telas/mesa-jogador.js    selo da mesa no topo da ficha e janela de entrar com o código
   telas/                   uma função por aba (painel, magias, perícias, ficha, inventário, notas)
                            a tela inicial (inicio.js), mostrada quando não há personagens,
                            e o hub do mestre (mestre.js)
   pdf/exportar.js          preenche a ficha em PDF
   pdf/importar.js          monta o personagem a partir de uma ficha em PDF
   pdf/ler-texto.js         lê PDFs sem o formulário oficial (pela posição ou pelos rótulos)
+  tempo-real/              mesa online com o Firebase (ver "Mesa online" abaixo)
   app.js                   inicialização
 tools/gerar_dados.py       gera js/dados/srd-*.js a partir do banco do SRD
 tests/unit/, tests/e2e/    testes (ver "Testes" abaixo)
 playwright.config.js       configuração dos testes no navegador
+database.rules.json        regras de segurança do Firebase (colar no console)
 ```
 
 ### Corrigir uma tradução
@@ -137,6 +140,44 @@ python3 tools/gerar_dados.py srd/dnd35.db   # ou: npm run dados -- srd/dnd35.db
 ```
 
 O zip e o `.db` estão no `.gitignore`.
+
+## Mesa online (tempo real)
+
+O mestre abre uma mesa a partir de uma campanha no hub e passa o código (ou o link de convite) aos jogadores. Cada jogador entra pelo botão **Entrar numa mesa**, no topo da ficha. A partir daí:
+
+- o card do jogador no hub se atualiza sozinho: PV, CA, testes e **efeitos ativos** (Armadura Arcana, Escudo Arcano, Fúria…) aparecem em fração de segundo e somem quando o jogador desliga;
+- a ficha completa (Detalhes) chega uns 2 segundos depois da última mudança;
+- só o card que mudou é redesenhado, então o que o mestre estiver digitando não é interrompido;
+- se o jogador fechar a aba ou perder a internet, o card fica marcado como offline com a última versão recebida; ao abrir o app de novo, ele volta sozinho para a mesa.
+
+Os dados passam pelo **Firebase Realtime Database** (plano gratuito Spark). O código fica em `js/tempo-real/`:
+
+```
+config.js           dados do app web do Firebase
+banco.js            interface do banco usada pela mesa (escolhe Firebase ou o simulado)
+banco-firebase.js   implementação com o Firebase (SDK carregado do CDN do Google só quando a mesa é usada)
+banco-local.js      banco simulado no navegador, para testar sem internet
+resumo.js           o que vai para o card do mestre (PV, CA, combate, efeitos)
+mesa.js             entrar, sair, enviar a ficha (jogador) e abrir, ouvir e fechar a mesa (mestre)
+```
+
+### Configurar o Firebase (uma vez)
+
+1. No [console do Firebase](https://console.firebase.google.com), crie o projeto, o **Realtime Database** (modo bloqueado) e ative o login **Anônimo** em _Authentication → Método de login_.
+2. Copie a configuração do app web (_Configurações do projeto → Seus apps_) para `js/tempo-real/config.js`, incluindo o `databaseURL`.
+3. Em _Realtime Database → Regras_, cole o conteúdo de `database.rules.json` e clique em **Publicar**. As regras garantem que:
+   - só quem entrou na mesa lê as fichas dela;
+   - cada jogador só altera a própria ficha;
+   - só o mestre altera os dados da mesa e pode fechá-la.
+
+### Testar sem internet
+
+Abra o app em duas abas do mesmo navegador:
+
+- `http://localhost:5173/?banco=local&perfil=mestre#mestre`: crie a campanha e abra a mesa;
+- `http://localhost:5173/?banco=local&perfil=jogador`: carregue os exemplos e entre com o código.
+
+`banco=local` troca o Firebase por um banco simulado entre as abas, e `perfil` separa as fichas salvas de cada aba, como se fossem duas pessoas. Os testes automáticos da mesa (`tests/e2e/mesa.spec.js`) usam esse modo.
 
 ## Testes
 
