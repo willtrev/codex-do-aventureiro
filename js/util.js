@@ -28,3 +28,8 @@ export function comoListas(v) {
   for (const k of ks) o[k] = comoListas(v[k]);
   return o;
 }
+
+/** Chave da ficha na mesa online: uid de quem envia + id do personagem. */
+export const chaveFicha = (uid, c) => `${uid}_${c.id}`;
+/** uid de quem enviou a ficha (o que vem antes do primeiro "_"). */
+export const uidDaFicha = (chave) => String(chave).split("_")[0];

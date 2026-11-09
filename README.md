@@ -151,6 +151,8 @@ O mestre abre uma mesa a partir de uma campanha no hub e passa o código (ou o l
 - a ficha completa (Detalhes) chega uns 2 segundos depois da última mudança;
 - só o card que mudou é redesenhado, então o que o mestre estiver digitando não é interrompido;
 - se o jogador fechar a aba ou perder a internet, o card fica marcado como offline com a última versão recebida; ao abrir o app de novo, ele volta sozinho para a mesa.
+- se o jogador clicar em "Sair da mesa" ou excluir o personagem, o card sai do hub e a peça sai do mapa;
+- cada personagem entra na mesa separado: a mesma pessoa pode trocar de personagem e entrar de novo, e o mestre pode testar como jogador com a própria conta sem perder o papel de mestre.
 
 Os dados passam pelo **Firebase Realtime Database** (plano gratuito Spark). O código fica em `js/tempo-real/`:
 

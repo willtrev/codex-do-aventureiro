@@ -781,6 +781,8 @@ async function aoClicar(e) {
       break;
     case "dodel": {
       const id = c.id;
+      // Personagem numa mesa: sai dela antes, para o card e a peça sumirem para o mestre
+      if (c.mesa) sairDaMesa(c, false);
       delete state.chars[id];
       touch(id);
       // Vai para o painel do próximo personagem; sem nenhum, mostra a tela inicial.

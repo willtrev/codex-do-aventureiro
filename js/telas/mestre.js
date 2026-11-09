@@ -291,7 +291,7 @@ export function secaoMesa(g) {
       x.status === "erro"
         ? `<span class="small" style="color:var(--bad)">${esc(x.erro)}</span>`
         : x.status === "ao-vivo"
-          ? `<span class="small"><span class="dot ok"></span> ao vivo · ${Object.values(x.vivos).filter((v) => v.online).length} jogador(es) conectado(s)</span>`
+          ? `<span class="small"><span class="dot ok"></span> ao vivo · ${Object.values(x.vivos).filter((v) => v.online).length} personagem(ns) conectado(s)</span>`
           : `<span class="small muted">conectando…</span>`;
     corpo = `<div class="row" style="align-items:center"><div style="flex:1;min-width:240px"><h2>Mesa online</h2>
       <div class="row" style="margin-top:6px;align-items:baseline"><span class="small muted">Código</span><b class="mcodigo">${esc(g.mesa.codigo)}</b>${st}</div></div>
@@ -327,13 +327,28 @@ export function atualizarCard(m) {
 }
 
 /** Recebe as novidades da mesa (ver escutarMesa em tempo-real/mesa.js). */
-export function aoMudarNaMesa(uid, tipo) {
+export function aoMudarNaMesa(chave, tipo) {
+  const uid = chave; // chave da ficha na mesa (<uid>_<id do personagem>)
   const g = campanha();
   if (!g || !g.mesa || typeof document === "undefined") return;
+  if (tipo === "presentes") {
+    const antes = g.membros.length;
+    g.membros = g.membros.filter((x) => x.origem !== "mesa" || !x.uid || chave.includes(x.uid));
+    if (g.membros.length !== antes) {
+      salvarCampanha(g);
+      atualizarGrade();
+    }
+    return;
+  }
   const vivo = mesaMestre.vivos[uid];
   let m = g.membros.find((x) => x.uid === uid);
   if (tipo === "saiu") {
-    if (m) atualizarCard(m);
+    // O personagem saiu da mesa (ou foi excluído pelo jogador): o card sai do hub
+    if (m && m.origem === "mesa") {
+      g.membros = g.membros.filter((x) => x !== m);
+      salvarCampanha(g);
+      atualizarGrade();
+    } else if (m) atualizarCard(m);
     atualizarSecaoMesa();
     return;
   }

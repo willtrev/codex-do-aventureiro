@@ -6,12 +6,13 @@
      mesas/<CÓDIGO>/mapa/fundo           imagem (data URL) ou link            só o mestre grava
      mesas/<CÓDIGO>/mapa/tokens/<id>     { nome, cor, x, y, dono, tipo, estado }
                                          o jogador grava só a própria peça (dono = uid dele)
+                                         peça de personagem: id pj_<chave da ficha>, ficha = chave
      mesas/<CÓDIGO>/mapa/combate         { rodada, vez, ordem: [{ id, valor }] }   só o mestre
      privado/<CÓDIGO>/monstros/<id>      { pv, pvMax, ca, ini }               só o mestre lê e grava
 
    Os jogadores veem dos monstros só o estado (ileso, ferido, muito ferido, caído).
    As funções puras (sem banco) ficam no começo, para os testes. */
-import { comoListas, uidGen } from "../util.js";
+import { chaveFicha, comoListas, uidDaFicha, uidGen } from "../util.js";
 import { conectarBanco } from "./banco.js";
 
 export const TAM_CASA = 50; // tamanho de um quadrado da grade, em unidades do SVG
@@ -135,7 +136,7 @@ export const mesaCombate = {
   fundo: "",
   tokens: {},
   combate: null,
-  fichas: {}, // uid → resumo (para o estado das peças dos personagens)
+  fichas: {}, // chave da ficha (<uid>_<id>) → resumo (para o estado das peças dos personagens)
   monstros: {}, // só o mestre: id → { pv, pvMax, ca, ini }
   status: "fora",
   erro: "",
@@ -183,9 +184,9 @@ export async function entrarNoCombate(codigo, papel, avisos, personagem) {
       removido: (id) => (delete t[id], avisos.tokens(id)),
     }),
     b.ouvirFilhos(`mesas/${codigo}/fichas`, {
-      adicionado: (uid, v) => ((mesaCombate.fichas[uid] = comoListas(v.resumo)), garantirPeca(uid), avisos.fichas(uid)),
-      mudado: (uid, v) => ((mesaCombate.fichas[uid] = comoListas(v.resumo)), avisos.fichas(uid)),
-      removido: (uid) => (delete mesaCombate.fichas[uid], avisos.fichas(uid)),
+      adicionado: (k, v) => ((mesaCombate.fichas[k] = comoListas(v.resumo)), garantirPeca(k), avisos.fichas(k)),
+      mudado: (k, v) => ((mesaCombate.fichas[k] = comoListas(v.resumo)), avisos.fichas(k)),
+      removido: (k) => (delete mesaCombate.fichas[k], avisos.fichas(k)),
     })
   );
   if (papel === "mestre")
@@ -196,7 +197,7 @@ export async function entrarNoCombate(codigo, papel, avisos, personagem) {
       })
     );
   // A peça do próprio jogador aparece sozinha ao abrir o mapa
-  if (papel === "jogador" && personagem) await garantirPeca(b.uid, personagem.nome);
+  if (papel === "jogador" && personagem) await garantirPeca(chaveFicha(b.uid, personagem), personagem.nome);
   mesaCombate.status = "ao-vivo";
 }
 export function pararCombate() {
@@ -206,17 +207,19 @@ export function pararCombate() {
 }
 
 /** Cria a peça de um personagem que ainda não tem (o mestre cria para todos; o jogador, para si). */
-async function garantirPeca(uid, nome) {
-  const id = "pj_" + uid;
+async function garantirPeca(chave, nome) {
+  const id = "pj_" + chave;
+  const uid = uidDaFicha(chave);
   if (mesaCombate.tokens[id]) return;
   if (mesaCombate.papel === "jogador" && uid !== mesaCombate.uid) return;
   const b = await conectarBanco();
-  const r = mesaCombate.fichas[uid];
+  const r = mesaCombate.fichas[chave];
   await b.criarSeNaoExiste(`mesas/${mesaCombate.codigo}/mapa/tokens/${id}`, {
     nome: nome || (r && r.nome) || "Personagem",
-    cor: corDoJogador(uid),
+    cor: corDoJogador(chave),
     ...casaLivre(mesaCombate.tokens, mesaCombate.config),
     dono: uid,
+    ficha: chave,
     tipo: "pj",
   });
 }

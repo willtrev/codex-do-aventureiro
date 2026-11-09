@@ -28,8 +28,8 @@
         },
         "fichas": {
           ".read": "auth != null && root.child('mesas').child($codigo).child('membros').child(auth.uid).exists()",
-          "$uid": {
-            ".write": "auth != null && (($uid === auth.uid && root.child('mesas').child($codigo).child('membros').child(auth.uid).exists()) || root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid)"
+          "$ficha": {
+            ".write": "auth != null && (($ficha.beginsWith(auth.uid + '_') && root.child('mesas').child($codigo).child('membros').child(auth.uid).exists()) || root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid)"
           }
         },
         "$outro": {

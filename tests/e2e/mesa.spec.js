@@ -1,4 +1,4 @@
-import { test, expect, carregarExemplos, expor } from "./ajuda.js";
+import { test, expect, aba, carregarExemplos, expor } from "./ajuda.js";
 
 /* Mesa online com o banco simulado (?banco=local): duas abas do mesmo navegador fazem
    o papel do mestre e do jogador; ?perfil= separa as fichas salvas de cada uma. */
@@ -6,6 +6,7 @@ import { test, expect, carregarExemplos, expor } from "./ajuda.js";
 async function abrirMesa(mestre) {
   await mestre.goto("/?banco=local&perfil=mestre#mestre");
   await expect(mestre.locator("#top")).not.toBeEmpty();
+  await expect(mestre.locator("#camp_nome")).toBeVisible();
   await mestre.fill("#camp_nome", "A Maldição de Strahd");
   await mestre.getByRole("button", { name: "Criar campanha" }).click();
   await mestre.getByRole("button", { name: "Abrir mesa online" }).click();
@@ -13,9 +14,9 @@ async function abrirMesa(mestre) {
   return mestre.locator(".mcodigo").innerText();
 }
 async function entrar(jogador, codigo) {
-  await jogador.goto("/?banco=local&perfil=jogador");
+  if (!/perfil=jogador/.test(jogador.url())) await jogador.goto("/?banco=local&perfil=jogador");
   await expect(jogador.locator("#top")).not.toBeEmpty();
-  await carregarExemplos(jogador);
+  if (!(await jogador.locator("#charsel").count())) await carregarExemplos(jogador);
   await jogador.getByRole("button", { name: "Entrar numa mesa" }).click();
   await jogador.fill("#mesa_cod", codigo);
   await jogador.getByRole("button", { name: "Entrar", exact: true }).click();
@@ -53,10 +54,45 @@ test("ficha do jogador aparece no hub e se atualiza sozinha", async ({ page: mes
   await expor(mestre);
   await expect.poll(() => mestre.evaluate(() => campanha().membros[0].c.hp.atual), { timeout: 5000 }).toBe(2);
 
-  // Jogador sai: o card fica, como offline
+  // Jogador fecha a aba: o card fica, como offline
+  await jogador.close();
+  await expect(card).toContainText("○ offline");
+});
+
+test("personagem que sai some do hub; outro que entra depois aparece", async ({ page: mestre, context }) => {
+  const codigo = await abrirMesa(mestre);
+  const jogador = await context.newPage();
+  await entrar(jogador, codigo);
+  const volis = mestre.locator(".mcard", { hasText: "Volis E'gurar" });
+  await expect(volis).toBeVisible();
+
+  // Sai da mesa: o card sai do hub do mestre
   await jogador.getByRole("button", { name: "Sair da mesa" }).click();
   await jogador.locator('.modal [data-a="mesasairok"]').click();
-  await expect(card).toContainText("○ offline");
+  await expect(volis).toHaveCount(0);
+
+  // Troca de personagem e entra com ele, com a mesa já aberta
+  await jogador.selectOption("#charsel", { index: 1 });
+  const outro = await jogador.locator("#top h1").innerText();
+  expect(outro).not.toBe("Volis E'gurar");
+  await jogador.getByRole("button", { name: "Entrar numa mesa" }).click();
+  await jogador.fill("#mesa_cod", codigo);
+  await jogador.getByRole("button", { name: "Entrar", exact: true }).click();
+  await expect(jogador.locator("#mesaselo")).toContainText("ao vivo");
+  await expect(mestre.locator(".mcard", { hasText: outro })).toBeVisible();
+  await expect(mestre.locator(".mcard")).toHaveCount(1);
+});
+
+test("excluir o personagem tira ele da mesa", async ({ page: mestre, context }) => {
+  const codigo = await abrirMesa(mestre);
+  const jogador = await context.newPage();
+  await entrar(jogador, codigo);
+  const volis = mestre.locator(".mcard", { hasText: "Volis E'gurar" });
+  await expect(volis).toBeVisible();
+  await aba(jogador, "notas");
+  await jogador.locator('[data-a="delchar"]').click();
+  await jogador.locator('.modal [data-a="dodel"]').click();
+  await expect(volis).toHaveCount(0);
 });
 
 test("código errado mostra mensagem", async ({ page }) => {
@@ -85,4 +121,31 @@ test("jogador que recarrega a página volta sozinho para a mesa", async ({ page:
   await jogador.reload();
   await expect(jogador.locator("#mesaselo")).toContainText("ao vivo");
   await expect(mestre.locator(".mcard")).toHaveCount(1);
+});
+
+test("mestre e jogador com a mesma conta Google: o mestre continua mestre", async ({ page: mestre, context }) => {
+  const logar = async (p) => {
+    await p.locator('[data-a="contaentrar"]').first().click();
+    await expect(p.locator("#contaselo")).toContainText("Pessoa de Teste");
+  };
+  await mestre.goto("/?banco=local&perfil=mestre");
+  await expect(mestre.locator("#top")).not.toBeEmpty();
+  await logar(mestre);
+  const codigo = await abrirMesa(mestre);
+
+  const jogador = await context.newPage();
+  await jogador.goto("/?banco=local&perfil=jogador");
+  await expect(jogador.locator("#top")).not.toBeEmpty();
+  await logar(jogador);
+  await entrar(jogador, codigo);
+
+  const volis = mestre.locator(".mcard", { hasText: "Volis E'gurar" });
+  await expect(volis).toBeVisible();
+  await jogador.getByRole("button", { name: "Sair da mesa" }).click();
+  await jogador.locator('.modal [data-a="mesasairok"]').click();
+  await expect(volis).toHaveCount(0);
+
+  // O mestre não perdeu o acesso: um novo personagem que entra aparece
+  await entrar(jogador, codigo);
+  await expect(volis).toBeVisible();
 });

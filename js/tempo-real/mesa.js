@@ -4,12 +4,16 @@
    Estrutura no banco (regras em database.rules.json):
      mesas/<CÓDIGO>/info               { nome, mestre: uid, criada }
      mesas/<CÓDIGO>/membros/<uid>      { papel: "mestre"|"jogador", nome, online }
-     mesas/<CÓDIGO>/fichas/<uid>       { resumo, ficha, atualizado }
+     mesas/<CÓDIGO>/fichas/<uid>_<id>  { resumo, ficha, atualizado }   (uma por personagem)
+
+   As fichas são separadas por personagem: a mesma conta pode levar mais de um personagem
+   para a mesa, e o mestre pode testar como jogador com a própria conta sem perder o papel
+   de mestre.
 
    Jogador: entra com o código; a cada mudança na ficha o resumo vai em ~0,15 s
    e a ficha completa em ~2 s (para não enviar a ficha inteira a cada clique).
    Mestre: abre a mesa a partir de uma campanha e recebe as mudanças de cada jogador. */
-import { clone, comoListas } from "../util.js";
+import { chaveFicha, clone, comoListas, uidDaFicha } from "../util.js";
 import { conectarBanco } from "./banco.js";
 import { resumoAoVivo } from "./resumo.js";
 import { touch } from "../armazenamento/armazenamento.js";
@@ -22,6 +26,7 @@ export const normCodigo = (s) =>
   String(s || "")
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, "");
+export { chaveFicha, uidDaFicha };
 export const linkConvite = (codigo) => `${location.origin}${location.pathname}${location.search}#entrar=${codigo}`;
 
 /** Cópia da ficha para enviar: sem as descrições longas das magias. */
@@ -53,9 +58,13 @@ export async function entrarNaMesa(codigoDigitado, c) {
     const info = await b.ler(`mesas/${codigo}/info`);
     if (!info) throw new Error(`Não existe mesa com o código ${codigo}. Confira o código com o mestre.`);
     const base = `mesas/${codigo}`;
-    await b.gravar(`${base}/membros/${b.uid}`, { papel: "jogador", nome: c.nome, online: true });
+    // Quem já é membro (o mestre testando como jogador, ou outro personagem da mesma conta)
+    // continua com o papel que tinha: só marca como online
+    const membro = await b.ler(`${base}/membros/${b.uid}`);
+    if (membro) await b.atualizar(`${base}/membros/${b.uid}`, { online: true });
+    else await b.gravar(`${base}/membros/${b.uid}`, { papel: "jogador", nome: c.nome, online: true });
     await b.aoDesconectar(`${base}/membros/${b.uid}/online`, false);
-    await b.gravar(`${base}/fichas/${b.uid}`, {
+    await b.gravar(`${base}/fichas/${chaveFicha(b.uid, c)}`, {
       resumo: resumoAoVivo(c),
       ficha: fichaParaEnvio(c),
       atualizado: Date.now(),
@@ -82,19 +91,35 @@ export async function entrarNaMesa(codigoDigitado, c) {
   }
 }
 
-export async function sairDaMesa(c) {
+/**
+ * Tira o personagem da mesa: apaga a ficha dele e a peça do mapa. A pessoa só deixa de ser
+ * membro se não tiver outro personagem na mesa e não for o mestre.
+ * Com apagar=false (personagem excluído do app) não mexe em c, que já vai sumir.
+ */
+export async function sairDaMesa(c, apagar = true) {
   if (!c || !c.mesa) return;
   const base = `mesas/${c.mesa.codigo}`;
-  delete c.mesa;
-  touch(c.id);
-  if (pararConexao) pararConexao();
-  pararConexao = null;
-  mudarConexao({ codigo: null, charId: null, status: "fora", erro: "" });
+  if (apagar) {
+    delete c.mesa;
+    touch(c.id);
+  }
+  if (conexaoJogador.charId === c.id) {
+    if (pararConexao) pararConexao();
+    pararConexao = null;
+    mudarConexao({ codigo: null, charId: null, status: "fora", erro: "" });
+  }
   try {
     const b = await conectarBanco();
-    await b.cancelarDesconexao(`${base}/membros/${b.uid}/online`);
-    await b.remover(`${base}/fichas/${b.uid}`);
-    await b.remover(`${base}/membros/${b.uid}`);
+    const chave = chaveFicha(b.uid, c);
+    await b.remover(`${base}/mapa/tokens/pj_${chave}`);
+    await b.remover(`${base}/fichas/${chave}`);
+    const fichas = (await b.ler(`${base}/fichas`)) || {};
+    const outras = Object.keys(fichas).some((k) => uidDaFicha(k) === b.uid);
+    const membro = await b.ler(`${base}/membros/${b.uid}`);
+    if (!outras && membro && membro.papel !== "mestre") {
+      await b.cancelarDesconexao(`${base}/membros/${b.uid}/online`);
+      await b.remover(`${base}/membros/${b.uid}`);
+    }
   } catch (e) {}
 }
 
@@ -112,7 +137,7 @@ let tResumo = null,
 async function enviar(c, campos) {
   try {
     const b = await conectarBanco();
-    await b.atualizar(`mesas/${c.mesa.codigo}/fichas/${b.uid}`, { ...campos, atualizado: Date.now() });
+    await b.atualizar(`mesas/${c.mesa.codigo}/fichas/${chaveFicha(b.uid, c)}`, { ...campos, atualizado: Date.now() });
   } catch (e) {
     mudarConexao({ status: "erro", erro: mensagemDeErro(e) });
   }
@@ -132,7 +157,7 @@ aoAlterarFicha.add(publicar);
 
 /* ---------- Lado do mestre ---------- */
 
-/** vivos[uid] = { resumo, ficha, online, nome } de cada jogador na mesa aberta. */
+/** vivos[chave da ficha] = { resumo, ficha, online } de cada personagem na mesa aberta. */
 export const mesaMestre = { codigo: null, vivos: {}, status: "fora", erro: "" };
 let pararEscuta = [];
 
@@ -163,35 +188,42 @@ export async function escutarMesa(g, aoMudar) {
     if (!info) throw new Error("A mesa desta campanha não existe mais. Abra uma nova.");
     if (info.mestre !== b.uid)
       throw new Error("Esta mesa foi aberta em outro navegador ou aparelho. Abra uma nova mesa por aqui.");
-    await b.gravar(`${base}/membros/${b.uid}/online`, true);
+    // Regrava o papel de mestre (garante que continua mestre mesmo depois de testar como jogador)
+    await b.gravar(`${base}/membros/${b.uid}`, { papel: "mestre", nome: "Mestre", online: true });
     await b.aoDesconectar(`${base}/membros/${b.uid}/online`, false);
-    const vivo = (uid) => (mesaMestre.vivos[uid] = mesaMestre.vivos[uid] || {});
-    const naFicha = (uid, v, novo) => {
-      const x = vivo(uid);
+    // Personagens que saíram enquanto o mestre estava fora: o hub tira os cards deles
+    aoMudar(Object.keys((await b.ler(`${base}/fichas`)) || {}), "presentes");
+    const vivo = (chave) => (mesaMestre.vivos[chave] = mesaMestre.vivos[chave] || {});
+    const online = {}; // uid → online, vindo de membros
+    const naFicha = (chave, v, novo) => {
+      const x = vivo(chave);
       const mudouFicha = JSON.stringify(x.ficha) !== JSON.stringify(v.ficha);
       x.resumo = comoListas(v.resumo);
       x.ficha = comoListas(v.ficha);
-      aoMudar(uid, novo || mudouFicha ? "ficha" : "resumo");
+      x.online = !!online[uidDaFicha(chave)];
+      aoMudar(chave, novo || mudouFicha ? "ficha" : "resumo");
+    };
+    const noMembro = (uid, v) => {
+      online[uid] = !!(v && v.online);
+      // Avisa cada personagem dessa pessoa (uma conta pode ter mais de um na mesa)
+      for (const [chave, x] of Object.entries(mesaMestre.vivos))
+        if (uidDaFicha(chave) === uid) {
+          x.online = online[uid];
+          aoMudar(chave, "membro");
+        }
     };
     pararEscuta.push(
-      b.ouvirFilhos(`${base}/fichas`, {
-        adicionado: (uid, v) => naFicha(uid, v, true),
-        mudado: (uid, v) => naFicha(uid, v, false),
-        removido: (uid) => {
-          delete mesaMestre.vivos[uid];
-          aoMudar(uid, "saiu");
-        },
-      }),
       b.ouvirFilhos(`${base}/membros`, {
-        adicionado: (uid, v) => {
-          if (v.papel === "mestre") return;
-          Object.assign(vivo(uid), { online: !!v.online, nome: v.nome });
-          aoMudar(uid, "membro");
-        },
-        mudado: (uid, v) => {
-          if (v.papel === "mestre") return;
-          Object.assign(vivo(uid), { online: !!v.online, nome: v.nome });
-          aoMudar(uid, "membro");
+        adicionado: noMembro,
+        mudado: noMembro,
+        removido: (uid) => noMembro(uid, null),
+      }),
+      b.ouvirFilhos(`${base}/fichas`, {
+        adicionado: (chave, v) => naFicha(chave, v, true),
+        mudado: (chave, v) => naFicha(chave, v, false),
+        removido: (chave) => {
+          delete mesaMestre.vivos[chave];
+          aoMudar(chave, "saiu");
         },
       })
     );

@@ -61,7 +61,7 @@ const ESTADO_CLASSE = {
 };
 export function estadoDoToken(id, t) {
   if (t.tipo === "pj") {
-    const r = mesaCombate.fichas[t.dono];
+    const r = mesaCombate.fichas[t.ficha || t.dono];
     return r && r.hp ? estadoPorPV(+r.hp.atual, +r.hp.max || 1) : "ileso";
   }
   return t.estado || "ileso";
@@ -301,8 +301,8 @@ const avisos = {
     const l = $("cb_lista");
     if (l) l.innerHTML = listaMonstros();
   },
-  fichas: (uid) => {
-    const id = "pj_" + uid;
+  fichas: (chave) => {
+    const id = "pj_" + chave;
     if (mesaCombate.tokens[id]) atualizarToken(id);
     atualizarOrdem();
   },
