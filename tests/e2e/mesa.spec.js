@@ -149,3 +149,39 @@ test("mestre e jogador com a mesma conta Google: o mestre continua mestre", asyn
   await entrar(jogador, codigo);
   await expect(volis).toBeVisible();
 });
+
+test("mestre remove o personagem online: o jogador é desconectado e não volta sozinho", async ({
+  page: mestre,
+  context,
+}) => {
+  const codigo = await abrirMesa(mestre);
+  const jogador = await context.newPage();
+  await entrar(jogador, codigo);
+  const volis = mestre.locator(".mcard", { hasText: "Volis E'gurar" });
+  await expect(volis).toBeVisible();
+
+  await volis.locator('[data-a="mremover"]').click();
+  await expect(mestre.locator(".modal")).toContainText("jogador é desconectado");
+  await mestre.locator('.modal [data-a="mremoverok"]').click();
+  await expect(volis).toHaveCount(0);
+
+  // O jogador fica sabendo e sai da mesa
+  await expect(jogador.locator("#mesaselo")).toContainText("O mestre tirou Volis E'gurar da mesa");
+  await expect(jogador.locator('#mesaselo [data-a="mesaentrar"]')).toBeVisible();
+
+  // Mudanças na ficha não trazem o card de volta
+  await jogador.fill("#hpamt", "2");
+  await jogador.locator('[data-a="dmg"]').click();
+  await jogador.waitForTimeout(2500);
+  await expect(volis).toHaveCount(0);
+
+  // Recarregar a página também não reconecta
+  await jogador.reload();
+  await expect(jogador.locator('#mesaselo [data-a="mesaentrar"]')).toBeVisible();
+  await jogador.waitForTimeout(500);
+  await expect(volis).toHaveCount(0);
+
+  // Mas o jogador pode pedir para entrar de novo pelo código
+  await entrar(jogador, codigo);
+  await expect(volis).toBeVisible();
+});

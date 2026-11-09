@@ -21,6 +21,12 @@
             "online": {
               ".validate": "newData.isBoolean()"
             },
+            "removidas": {
+              "$ficha": {
+                ".read": "auth != null && ($ficha.beginsWith(auth.uid + '_') || root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid)",
+                ".write": "auth != null && (root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid || ($ficha.beginsWith(auth.uid + '_') && !newData.exists()))"
+              }
+            },
             "$outro": {
               ".validate": false
             }
@@ -29,7 +35,7 @@
         "fichas": {
           ".read": "auth != null && root.child('mesas').child($codigo).child('membros').child(auth.uid).exists()",
           "$ficha": {
-            ".write": "auth != null && (($ficha.beginsWith(auth.uid + '_') && root.child('mesas').child($codigo).child('membros').child(auth.uid).exists()) || root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid)"
+            ".write": "auth != null && (($ficha.beginsWith(auth.uid + '_') && root.child('mesas').child($codigo).child('membros').child(auth.uid).exists() && !root.child('mesas').child($codigo).child('removidas').child($ficha).exists()) || root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid)"
           }
         },
         "$outro": {

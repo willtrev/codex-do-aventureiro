@@ -30,7 +30,7 @@ import {
   salvarConfig,
   salvarFundo,
 } from "../tempo-real/combate.js";
-import { entrarNaMesa, fecharMesa, mensagemDeErro, reconectar, sairDaMesa } from "../tempo-real/mesa.js";
+import { entrarNaMesa, fecharMesa, mensagemDeErro, reconectar, sairDaMesa, tirarDaMesa } from "../tempo-real/mesa.js";
 import { render } from "../telas/topo.js";
 import {
   adicionarNaCampanha,
@@ -740,12 +740,20 @@ async function aoClicar(e) {
       break;
     case "mremover": {
       const m = campanha().membros.find((x) => x.mid === b.dataset.m);
-      if (m) confirmModal(`Tirar ${m.c.nome} da campanha? A ficha do jogador não é afetada.`, "mremoverok");
+      const naMesa = m && m.uid && m.origem === "mesa" && campanha().mesa;
+      if (m)
+        confirmModal(
+          `Tirar ${m.c.nome} da campanha? ${naMesa ? "O personagem também sai da mesa online e o jogador é desconectado. " : ""}A ficha do jogador não é afetada.`,
+          "mremoverok"
+        );
       setMembroARemover(b.dataset.m);
       break;
     }
     case "mremoverok": {
       const g = campanha();
+      const m = g.membros.find((x) => x.mid === membroARemover);
+      // Personagem que veio pela mesa: também sai da mesa (o jogador é desconectado)
+      if (m && m.uid && g.mesa && m.origem === "mesa") await tirarDaMesa(g, m.uid);
       g.membros = g.membros.filter((x) => x.mid !== membroARemover);
       salvarCampanha(g);
       closeModal();

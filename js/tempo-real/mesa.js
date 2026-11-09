@@ -5,6 +5,7 @@
      mesas/<CÓDIGO>/info               { nome, mestre: uid, criada }
      mesas/<CÓDIGO>/membros/<uid>      { papel: "mestre"|"jogador", nome, online }
      mesas/<CÓDIGO>/fichas/<uid>_<id>  { resumo, ficha, atualizado }   (uma por personagem)
+     mesas/<CÓDIGO>/removidas/<uid>_<id>  true   personagem que o mestre tirou da mesa
 
    As fichas são separadas por personagem: a mesma conta pode levar mais de um personagem
    para a mesa, e o mestre pode testar como jogador com a própria conta sem perder o papel
@@ -39,7 +40,7 @@ export function fichaParaEnvio(c) {
 
 /* ---------- Lado do jogador ---------- */
 
-/** status: "fora" | "conectando" | "ao-vivo" | "offline" | "erro" */
+/** status: "fora" | "conectando" | "ao-vivo" | "offline" | "erro" | "removido" (o mestre tirou) */
 export const conexaoJogador = { codigo: null, charId: null, status: "fora", erro: "" };
 const ouvintesStatus = new Set();
 export const aoMudarConexao = (fn) => (ouvintesStatus.add(fn), () => ouvintesStatus.delete(fn));
@@ -48,8 +49,35 @@ function mudarConexao(patch) {
   ouvintesStatus.forEach((f) => f(conexaoJogador));
 }
 let pararConexao = null;
+let pararRemocao = null;
+const pararTudo = () => {
+  if (pararConexao) pararConexao();
+  if (pararRemocao) pararRemocao();
+  pararConexao = pararRemocao = null;
+  clearTimeout(tResumo);
+  clearTimeout(tFicha);
+};
 
-export async function entrarNaMesa(codigoDigitado, c) {
+/** O mestre tirou o personagem da mesa: corta a conexão e para de enviar a ficha. */
+async function foiRemovido(c, b, base) {
+  pararTudo();
+  const nomeMesa = (c.mesa && c.mesa.nome) || "";
+  delete c.mesa;
+  touch(c.id);
+  mudarConexao({ status: "removido", erro: `O mestre tirou ${c.nome} da mesa${nomeMesa ? " " + nomeMesa : ""}.` });
+  try {
+    const fichas = (await b.ler(`${base}/fichas`)) || {};
+    if (!Object.keys(fichas).some((k) => uidDaFicha(k) === b.uid))
+      await b.cancelarDesconexao(`${base}/membros/${b.uid}/online`);
+  } catch (e) {}
+}
+
+/**
+ * Entra na mesa com o personagem c. voltando=true é a reconexão automática (ao abrir o app):
+ * se o mestre tirou o personagem, não volta. Entrar pelo código (voltando=false) é a pessoa
+ * pedindo para entrar de novo, e vale.
+ */
+export async function entrarNaMesa(codigoDigitado, c, voltando = false) {
   const codigo = normCodigo(codigoDigitado);
   if (codigo.length !== 6) throw new Error("O código da mesa tem 6 letras e números.");
   mudarConexao({ codigo, charId: c.id, status: "conectando", erro: "" });
@@ -58,19 +86,28 @@ export async function entrarNaMesa(codigoDigitado, c) {
     const info = await b.ler(`mesas/${codigo}/info`);
     if (!info) throw new Error(`Não existe mesa com o código ${codigo}. Confira o código com o mestre.`);
     const base = `mesas/${codigo}`;
+    const chave = chaveFicha(b.uid, c);
+    if (voltando && (await b.ler(`${base}/removidas/${chave}`))) {
+      await foiRemovido(c, b, base);
+      return null;
+    }
+    if (!voltando) await b.remover(`${base}/removidas/${chave}`);
     // Quem já é membro (o mestre testando como jogador, ou outro personagem da mesma conta)
     // continua com o papel que tinha: só marca como online
     const membro = await b.ler(`${base}/membros/${b.uid}`);
     if (membro) await b.atualizar(`${base}/membros/${b.uid}`, { online: true });
     else await b.gravar(`${base}/membros/${b.uid}`, { papel: "jogador", nome: c.nome, online: true });
     await b.aoDesconectar(`${base}/membros/${b.uid}/online`, false);
-    await b.gravar(`${base}/fichas/${chaveFicha(b.uid, c)}`, {
+    await b.gravar(`${base}/fichas/${chave}`, {
       resumo: resumoAoVivo(c),
       ficha: fichaParaEnvio(c),
       atualizado: Date.now(),
     });
     c.mesa = { codigo, nome: info.nome };
-    if (pararConexao) pararConexao();
+    pararTudo();
+    pararRemocao = b.ouvir(`${base}/removidas/${chave}`, (v) => {
+      if (v && c.mesa && c.mesa.codigo === codigo) foiRemovido(c, b, base);
+    });
     // Quando a internet volta, marca de novo como online e reenvia a ficha
     let primeira = true;
     pararConexao = b.conexao(async (ok) => {
@@ -104,8 +141,7 @@ export async function sairDaMesa(c, apagar = true) {
     touch(c.id);
   }
   if (conexaoJogador.charId === c.id) {
-    if (pararConexao) pararConexao();
-    pararConexao = null;
+    pararTudo();
     mudarConexao({ codigo: null, charId: null, status: "fora", erro: "" });
   }
   try {
@@ -128,7 +164,7 @@ export async function reconectar(c, forcar = false) {
   if (!c || !c.mesa) return;
   if (!forcar && conexaoJogador.charId === c.id && ["ao-vivo", "conectando"].includes(conexaoJogador.status)) return;
   try {
-    await entrarNaMesa(c.mesa.codigo, c);
+    await entrarNaMesa(c.mesa.codigo, c, true);
   } catch (e) {}
 }
 
@@ -176,6 +212,20 @@ export async function abrirMesa(g) {
  * Começa a receber a mesa da campanha. aoMudar(uid, tipo) é chamado a cada novidade:
  * tipo "resumo" (PV, CA, efeitos), "ficha" (ficha completa), "membro" (online/offline) ou "saiu".
  */
+/**
+ * Mestre tira um personagem da mesa: marca como removido (o jogador corta a conexão sozinho
+ * e não volta ao reabrir o app) e apaga a ficha e a peça do mapa.
+ */
+export async function tirarDaMesa(g, chave) {
+  if (!g || !g.mesa || !chave) return;
+  const b = await conectarBanco();
+  const base = `mesas/${g.mesa.codigo}`;
+  await b.gravar(`${base}/removidas/${chave}`, true);
+  await b.remover(`${base}/fichas/${chave}`);
+  await b.remover(`${base}/mapa/tokens/pj_${chave}`);
+  delete mesaMestre.vivos[chave];
+}
+
 export async function escutarMesa(g, aoMudar) {
   if (!g.mesa) return;
   if (mesaMestre.codigo === g.mesa.codigo && mesaMestre.status === "ao-vivo") return;

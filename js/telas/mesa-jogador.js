@@ -2,14 +2,19 @@
    O selo "Mesa" no topo da ficha e a janela para entrar com o código do mestre.
    O selo é atualizado sozinho (sem redesenhar a tela) quando a conexão muda. */
 import { esc } from "../util.js";
-import { cur } from "../interface/estado.js";
+import { cur, irPara, modo } from "../interface/estado.js";
+import { render } from "./topo.js";
 import { modal } from "../interface/modais.js";
 import { aoMudarConexao, conexaoJogador } from "../tempo-real/mesa.js";
 
 export function seloMesa(c) {
   const x = conexaoJogador;
   let conteudo;
-  if (!c || !c.mesa) conteudo = `<button class="btn sm" data-a="mesaentrar">Entrar numa mesa</button>`;
+  if (!c || !c.mesa)
+    conteudo =
+      (c && x.status === "removido" && x.charId === c.id
+        ? `<span class="status small"><span class="dot err"></span>${esc(x.erro)}</span>`
+        : "") + `<button class="btn sm" data-a="mesaentrar">Entrar numa mesa</button>`;
   else {
     const daFicha = x.charId === c.id;
     const st = daFicha ? x.status : "conectando";
@@ -33,7 +38,14 @@ export function atualizarSelo() {
   const el = document.getElementById("mesaselo");
   if (el) el.outerHTML = seloMesa(cur());
 }
-if (typeof document !== "undefined") aoMudarConexao(atualizarSelo);
+if (typeof document !== "undefined")
+  aoMudarConexao((x) => {
+    // Tirado da mesa com o mapa aberto: volta para a ficha
+    if (x.status === "removido" && modo === "combate") {
+      irPara("painel");
+      render();
+    } else atualizarSelo();
+  });
 
 export function entrarMesaModal(c, codigo = "") {
   modal(`<div class="row"><h2 style="font-size:18px;color:var(--ink)">Entrar numa mesa</h2><span class="spacer"></span><button class="btn sm ghost" data-a="close">Fechar</button></div>
