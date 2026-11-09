@@ -1079,6 +1079,27 @@ tr.na td {
 }
 
 /* Conta Google */
+.escolhas {
+  display: grid;
+  gap: 8px;
+}
+.btn.escolha {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  white-space: normal;
+}
+.btn.escolha span {
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.85;
+}
+.escolhas-grupo {
+  margin: 6px 0 -2px;
+}
 .conta-foto {
   width: 24px;
   height: 24px;

@@ -13,7 +13,16 @@ import { setIdioma } from "./idioma.js";
 import { convite, cur, getPath, irPara, readHash, setConvite, setPath } from "./estado.js";
 import { entrarMesaModal, atualizarSelo } from "../telas/mesa-jogador.js";
 import { entrarComGoogle, sairDaConta } from "../tempo-real/conta.js";
-import { desligarConta, ligarConta } from "../armazenamento/nuvem-conta.js";
+import { apagarDoNavegador, compararConta, desligarConta, ligarConta } from "../armazenamento/nuvem-conta.js";
+import { htmlEscolhaAoEntrar, htmlEscolhaAoSair } from "../telas/conta.js";
+
+/** Conta que acabou de entrar e espera a pessoa escolher o que fazer com as fichas. */
+let contaPendente = null;
+async function concluirEntrada(u, modo) {
+  await ligarConta(u, modo);
+  // O uid pode ter mudado: volta para a mesa com a identidade nova
+  reconectar(cur(), true).then(atualizarSelo);
+}
 import { pecaATirar, setPapelPreferido, setPecaATirar } from "../telas/combate.js";
 import {
   adicionarMonstros,
@@ -210,7 +219,8 @@ async function aoClicar(e) {
   const a = b.dataset.a,
     c = cur();
   if (a === "closebg") {
-    if (e.target === b) closeModal();
+    // Escolhas obrigatórias (ao entrar na conta) só fecham pelos botões
+    if (e.target === b && !b.querySelector("[data-obrigatorio]")) closeModal();
     return;
   }
   if (b.tagName === "SELECT" || b.type === "checkbox") return;
@@ -507,24 +517,44 @@ async function aoClicar(e) {
         return null;
       });
       if (!u) break;
-      await ligarConta(u);
-      // O uid pode ter mudado: volta para a mesa com a identidade nova
-      reconectar(cur(), true).then(atualizarSelo);
+      // Fichas diferentes no navegador e na conta: a pessoa escolhe o que fazer
+      const cmp = await compararConta(u);
+      if (cmp.pergunta) {
+        contaPendente = u;
+        modal(htmlEscolhaAoEntrar(cmp));
+        break;
+      }
+      await concluirEntrada(u, cmp.modo);
       break;
     }
-    case "contasair":
-      confirmModal(
-        "Sair da conta Google? As fichas continuam neste aparelho, mas deixam de ser salvas na conta e de aparecer nos outros aparelhos.",
-        "contasairok"
-      );
-      break;
-    case "contasairok":
+    case "contajuntar": {
+      const u = contaPendente;
+      contaPendente = null;
       closeModal();
-      desligarConta();
+      if (u) await concluirEntrada(u, b.dataset.m);
+      break;
+    }
+    case "contacancelar":
+      contaPendente = null;
+      closeModal();
+      await sairDaConta();
+      render();
+      break;
+    case "contasair":
+      modal(htmlEscolhaAoSair());
+      break;
+    case "contasairok": {
+      closeModal();
+      if (b.dataset.m === "apagar") {
+        // Personagens numa mesa saem dela antes (ainda com a identidade da conta)
+        for (const x of Object.values(state.chars)) if (x.mesa) await sairDaMesa(x, false);
+        apagarDoNavegador();
+      } else desligarConta();
       await sairDaConta();
       render();
       reconectar(cur(), true).then(atualizarSelo);
       break;
+    }
     /* ----- Mesa de combate ----- */
     case "abrircombate":
       setPapelPreferido(b.dataset.p);
@@ -853,7 +883,7 @@ async function aoClicar(e) {
   }
 }
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") closeModal();
+  if (e.key === "Escape" && !document.querySelector(".modal [data-obrigatorio]")) closeModal();
 });
 window.addEventListener("hashchange", () => {
   readHash();

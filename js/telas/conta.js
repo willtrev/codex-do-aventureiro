@@ -25,3 +25,41 @@ export function atualizarSeloConta() {
   document.querySelectorAll("#contaselo").forEach((el) => (el.outerHTML = seloConta()));
 }
 if (typeof document !== "undefined") aoMudarConta(atualizarSeloConta);
+
+/* ----- Escolhas ao entrar e ao sair ----- */
+
+const qtd = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+const quanto = (x) =>
+  [qtd(x.fichas, "ficha", "fichas"), x.campanhas ? qtd(x.campanhas, "campanha", "campanhas") : ""]
+    .filter(Boolean)
+    .join(" e ");
+const botaoEscolha = (a, m, titulo, texto, cls = "") =>
+  `<button class="btn escolha ${cls}" data-a="${a}" data-m="${m}"><b>${titulo}</b><span>${texto}</span></button>`;
+
+/** Ao entrar com fichas dos dois lados: usar as da conta, adicionar as da conta ou substituir a conta. */
+export function htmlEscolhaAoEntrar(cmp) {
+  const quando = cmp.ultima
+    ? `, salvas por último em ${new Date(cmp.ultima).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`
+    : "";
+  return `<div data-obrigatorio>
+    <h2 style="font-size:18px;color:var(--ink)">Fichas neste navegador e na sua conta</h2>
+    <p style="margin:0;line-height:1.5">Neste navegador: <b>${quanto(cmp.navegador)}</b>. Na sua conta Google: <b>${quanto(cmp.conta)}</b>${quando}. O que fazer?</p>
+    <div class="escolhas">
+      ${botaoEscolha("contajuntar", "conta", "Usar as da conta", "As fichas deste navegador são trocadas pelas salvas na conta.")}
+      <p class="small muted escolhas-grupo">Manter as deste navegador e…</p>
+      ${botaoEscolha("contajuntar", "adicionar", "…adicionar as da conta como novas", "Nada se perde. Se houver duas com o mesmo nome, a da conta ganha “(conta Google)” no nome.", "pri")}
+      ${botaoEscolha("contajuntar", "navegador", "…substituir as da conta por estas", "A conta fica só com as fichas deste navegador. As que estavam só na conta são apagadas.")}
+    </div>
+    <div class="row"><button class="btn ghost" data-a="contacancelar">Cancelar e não entrar</button></div></div>`;
+}
+
+/** Ao sair: manter a cópia deste navegador ou apagar tudo dele. */
+export function htmlEscolhaAoSair() {
+  return `<h2 style="font-size:18px;color:var(--ink)">Sair da conta Google</h2>
+    <p style="margin:0;line-height:1.5">As fichas continuam salvas na sua conta. O que fazer com a cópia deste navegador?</p>
+    <div class="escolhas">
+      ${botaoEscolha("contasairok", "manter", "Manter neste navegador", "Continuam aqui, mas as mudanças deixam de ir para a conta e para os outros aparelhos.", "pri")}
+      ${botaoEscolha("contasairok", "apagar", "Apagar tudo deste navegador", "Fichas e campanhas somem deste aparelho. Na conta, nada muda: é só entrar de novo para trazê-las.", "danger")}
+    </div>
+    <div class="row"><button class="btn" data-a="close">Cancelar</button></div>`;
+}

@@ -53,7 +53,9 @@ Escolha o endereço definitivo antes de as pessoas começarem a usar: os dados f
 
 ### Onde os dados ficam salvos
 
-- **Com a conta Google** (botão **Entrar com Google** no topo): fichas e campanhas ficam salvas no Firebase, em `usuarios/<uid>`, e aparecem em qualquer aparelho em que a pessoa entrar. Mudanças feitas num aparelho chegam sozinhas aos outros, e em conflito vale a versão mais recente. O navegador continua com uma cópia, para funcionar sem internet. Ao sair da conta, as fichas ficam no aparelho.
+- **Com a conta Google** (botão **Entrar com Google** no topo): fichas e campanhas ficam salvas no Firebase, em `usuarios/<uid>`, e aparecem em qualquer aparelho em que a pessoa entrar. Mudanças feitas num aparelho chegam sozinhas aos outros. O navegador continua com uma cópia, para funcionar sem internet.
+  - Ao entrar, se o navegador e a conta têm fichas diferentes, o app pergunta o que fazer: **usar as da conta** (as do navegador são trocadas), **manter as do navegador e adicionar as da conta como novas** (fichas com o mesmo nome ganham "(conta Google)" no nome) ou **manter as do navegador e substituir as da conta**. Se um dos lados está vazio, não pergunta.
+  - Ao sair, o app pergunta se mantém as fichas no navegador ou apaga tudo dele. Apagar não mexe na conta.
 - **Sem conta, no site hospedado ou aberto do disco:** no navegador de cada pessoa (`localStorage`). Nada vai para um servidor, e cada pessoa só vê os próprios personagens.
 - **Como artefato do Claude:** os dados também ficam salvos na conta de quem usa.
 
