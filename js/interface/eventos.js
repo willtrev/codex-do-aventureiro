@@ -12,6 +12,8 @@ import { applyTheme, setTheme, theme } from "./tema.js";
 import { setIdioma } from "./idioma.js";
 import { convite, cur, getPath, irPara, readHash, setConvite, setPath } from "./estado.js";
 import { entrarMesaModal, atualizarSelo } from "../telas/mesa-jogador.js";
+import { entrarComGoogle, sairDaConta } from "../tempo-real/conta.js";
+import { desligarConta, ligarConta } from "../armazenamento/nuvem-conta.js";
 import { setPapelPreferido } from "../telas/combate.js";
 import {
   adicionarMonstros,
@@ -497,6 +499,31 @@ async function aoClicar(e) {
     }
     case "importpdf":
       importPdfModal();
+      break;
+    /* ----- Conta Google ----- */
+    case "contaentrar": {
+      const u = await entrarComGoogle().catch((err) => {
+        modal_erro(err.message, "Não foi possível entrar com o Google");
+        return null;
+      });
+      if (!u) break;
+      await ligarConta(u);
+      // O uid pode ter mudado: volta para a mesa com a identidade nova
+      reconectar(cur(), true).then(atualizarSelo);
+      break;
+    }
+    case "contasair":
+      confirmModal(
+        "Sair da conta Google? As fichas continuam neste aparelho, mas deixam de ser salvas na conta e de aparecer nos outros aparelhos.",
+        "contasairok"
+      );
+      break;
+    case "contasairok":
+      closeModal();
+      desligarConta();
+      await sairDaConta();
+      render();
+      reconectar(cur(), true).then(atualizarSelo);
       break;
     /* ----- Mesa de combate ----- */
     case "abrircombate":

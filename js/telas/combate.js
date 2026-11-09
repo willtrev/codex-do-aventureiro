@@ -5,6 +5,7 @@
    Atualização por região: cada novidade do banco mexe só no que mudou
    (uma peça, a lista de iniciativa, a lista de monstros). Durante o arrasto a peça é
    movida direto no SVG e a posição só vai para o banco ao soltar. */
+import { seloConta } from "./conta.js";
 import { esc, sg } from "../util.js";
 import { cur } from "../interface/estado.js";
 import { theme } from "../interface/tema.js";
@@ -199,7 +200,7 @@ export function topoCombate(ctx) {
   document.getElementById("top").innerHTML = `
    <div class="idrow"><h1>Combate</h1><span class="sub">${ctx ? `${esc(ctx.nome || "Mesa")} · mesa ${esc(ctx.codigo)} · ${ctx.papel === "mestre" ? "mestre" : "jogador"}` : "Mesa online"}</span>
    <span class="spacer"></span>${volta}</div>
-   <div class="row"><span class="status" id="st">${statusHTML()}</span><span class="spacer"></span>
+   <div class="row"><span class="status" id="st">${statusHTML()}</span>${seloConta()}<span class="spacer"></span>
    <span class="theme" role="group" aria-label="Tema">${[
      ["light", "Claro"],
      ["dark", "Escuro"],

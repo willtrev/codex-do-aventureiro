@@ -11,6 +11,7 @@
    Estrutura salva em state.campanhas[id]:
      { id, nome, criada, ordem, mesa?: { codigo },
        membros: [{ mid, importado, origem, c, uid? }] }   (uid = jogador ligado pela mesa) */
+import { seloConta } from "./conta.js";
 import { clamp, clone, esc, lvlName, mod, sg, sizeGrap, uidGen } from "../util.js";
 import { ATTRS, SK } from "../regras/basicas.js";
 import { at, classFeatures, cls, spellAttr } from "../regras/classes.js";
@@ -132,7 +133,7 @@ export function topoMestre() {
      ${g ? `<button class="btn sm" data-a="campnova">Nova campanha</button>` : ""}
      <a class="btn sm" href="#painel">${Object.keys(state.chars).length ? "Minhas fichas" : "Início"}</a>
    </div>
-   <div class="row"><span class="status" id="st">${statusHTML()}</span><span class="spacer"></span>${toggles}</div>`;
+   <div class="row"><span class="status" id="st">${statusHTML()}</span>${seloConta()}<span class="spacer"></span>${toggles}</div>`;
 }
 
 export function vMestre() {

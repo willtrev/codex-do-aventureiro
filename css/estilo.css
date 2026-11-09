@@ -1060,3 +1060,26 @@ tr.na td {
   padding: 2px 6px;
   min-width: 0;
 }
+
+/* Conta Google */
+.conta-foto {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+.conta-inicial {
+  display: inline-grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+.conta-nome {
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

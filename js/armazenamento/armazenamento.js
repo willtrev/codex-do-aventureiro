@@ -40,13 +40,30 @@ export function loadLocal() {
 export function col() {
   return db.collection("data/users/" + uid);
 }
+/* Onde salvar na nuvem: a conta do Claude (artefato) ou a conta Google (nuvem-conta.js).
+   escritor.set(chave, valor) / escritor.del(chave), com chave "meta", "c_<id>" ou "g_<id>". */
+export let escritor = null,
+  nomeNuvem = "Salvo na sua conta";
+export function usarNuvem(e, nome) {
+  escritor = e;
+  storeMode = e ? "cloud" : "local";
+  if (nome) nomeNuvem = nome;
+  if (!e) setStatus("Salvo só neste navegador", "pend");
+}
+const escritorClaude = {
+  set: (k, v) => col().doc(k).set(v),
+  del: (k) => col().doc(k).delete(),
+};
 export const dirty = new Set();
 export let saveTimer = null,
   writing = false;
 export function touch(id) {
   dirty.add(id || state.active);
-  saveLocal();
+  // Hora da última mudança: na sincronização entre aparelhos, vale a versão mais recente
   const c = state.chars[id || state.active];
+  if (c) c._em = Date.now();
+  if (id && id.startsWith("g:") && state.campanhas[id.slice(2)]) state.campanhas[id.slice(2)]._em = Date.now();
+  saveLocal();
   if (c) aoAlterarFicha.forEach((f) => f(c));
   clearTimeout(saveTimer);
   if (storeMode === "cloud") {
@@ -59,36 +76,26 @@ export async function flush() {
     saveTimer = setTimeout(flush, 400);
     return;
   }
-  if (storeMode !== "cloud" || !dirty.size) return;
+  if (storeMode !== "cloud" || !escritor || !dirty.size) return;
   writing = true;
   const ids = [...dirty];
   dirty.clear();
   try {
     for (const id of ids) {
       if (id === "__meta")
-        await col()
-          .doc("meta")
-          .set({ active: state.active || "", mig: state.mig || 0, campanhaAtiva: state.campanhaAtiva || "" });
+        await escritor.set("meta", {
+          active: state.active || "",
+          mig: state.mig || 0,
+          campanhaAtiva: state.campanhaAtiva || "",
+        });
       else if (id.startsWith("g:")) {
         const g = id.slice(2);
-        if (state.campanhas[g])
-          await col()
-            .doc("g_" + g)
-            .set(clone(state.campanhas[g]));
-        else
-          await col()
-            .doc("g_" + g)
-            .delete();
-      } else if (state.chars[id])
-        await col()
-          .doc("c_" + id)
-          .set(clone(state.chars[id]));
-      else
-        await col()
-          .doc("c_" + id)
-          .delete();
+        if (state.campanhas[g]) await escritor.set("g_" + g, clone(state.campanhas[g]));
+        else await escritor.del("g_" + g);
+      } else if (state.chars[id]) await escritor.set("c_" + id, clone(state.chars[id]));
+      else await escritor.del("c_" + id);
     }
-    setStatus("Salvo na sua conta", "ok");
+    setStatus(nomeNuvem, "ok");
   } catch (e) {
     ids.forEach((i) => dirty.add(i));
     if (e && e.code === "unavailable") {
@@ -155,7 +162,7 @@ export async function initCloud() {
       } else if (doc.id.startsWith("c_") && v && v.id) chars[v.id] = clone(v);
       else if (doc.id.startsWith("g_") && v && v.id) campanhas[v.id] = clone(v);
     }
-    storeMode = "cloud";
+    usarNuvem(escritorClaude, "Salvo na sua conta");
     if (Object.keys(chars).length || Object.keys(campanhas).length) {
       state = {
         chars,
@@ -166,7 +173,7 @@ export async function initCloud() {
       };
       migrate();
       saveLocal();
-      if (!dirty.size) setStatus("Salvo na sua conta", "ok");
+      if (!dirty.size) setStatus(nomeNuvem, "ok");
       render();
     } else {
       Object.keys(state.chars).forEach((k) => dirty.add(k));

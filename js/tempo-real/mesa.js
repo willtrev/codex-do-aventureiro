@@ -99,9 +99,9 @@ export async function sairDaMesa(c) {
 }
 
 /** Volta para a mesa ao abrir o app, se a ficha ativa estava numa. */
-export async function reconectar(c) {
+export async function reconectar(c, forcar = false) {
   if (!c || !c.mesa) return;
-  if (conexaoJogador.charId === c.id && ["ao-vivo", "conectando"].includes(conexaoJogador.status)) return;
+  if (!forcar && conexaoJogador.charId === c.id && ["ao-vivo", "conectando"].includes(conexaoJogador.status)) return;
   try {
     await entrarNaMesa(c.mesa.codigo, c);
   } catch (e) {}

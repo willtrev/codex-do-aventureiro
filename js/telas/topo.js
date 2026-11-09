@@ -1,4 +1,5 @@
 /* ================= Render ================= */
+import { seloConta } from "./conta.js";
 import { esc } from "../util.js";
 import { cls } from "../regras/classes.js";
 import { alignBlock, alignCode } from "../regras/tendencias.js";
@@ -49,7 +50,7 @@ export function render() {
      <button class="btn sm pri" data-a="exportpdf">Exportar PDF</button>
      <a class="btn sm" href="#mestre">Hub do mestre</a>
    </div>
-   <div class="row"><span class="status" id="st">${statusHTML()}</span>${seloMesa(c)}<span class="spacer"></span>
+   <div class="row"><span class="status" id="st">${statusHTML()}</span>${seloConta()}${seloMesa(c)}<span class="spacer"></span>
      <span class="theme" role="group" aria-label="Idioma do conteúdo" title="Idioma de magias, talentos, equipamento e domínios">${IDIOMAS.map(
        ([k, n]) => `<button data-a="lang" data-l="${k}" aria-pressed="${idioma === k}">${n}</button>`
      ).join("")}</span>

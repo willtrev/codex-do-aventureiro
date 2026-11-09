@@ -24,6 +24,10 @@ export function usarBancoLocal() {
     return false;
   }
 }
+/** Esquece a conexão atual: a próxima chamada conecta com o login novo (entrou ou saiu da conta Google). */
+export function reiniciarBanco() {
+  promessa = null;
+}
 /** Conecta uma vez só e reaproveita a conexão. */
 export function conectarBanco() {
   if (!promessa)

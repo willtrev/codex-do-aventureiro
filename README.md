@@ -53,10 +53,11 @@ Escolha o endereço definitivo antes de as pessoas começarem a usar: os dados f
 
 ### Onde os dados ficam salvos
 
-- **No site hospedado ou aberto do disco:** no navegador de cada pessoa (`localStorage`). Nada vai para um servidor, e cada pessoa só vê os próprios personagens.
+- **Com a conta Google** (botão **Entrar com Google** no topo): fichas e campanhas ficam salvas no Firebase, em `usuarios/<uid>`, e aparecem em qualquer aparelho em que a pessoa entrar. Mudanças feitas num aparelho chegam sozinhas aos outros, e em conflito vale a versão mais recente. O navegador continua com uma cópia, para funcionar sem internet. Ao sair da conta, as fichas ficam no aparelho.
+- **Sem conta, no site hospedado ou aberto do disco:** no navegador de cada pessoa (`localStorage`). Nada vai para um servidor, e cada pessoa só vê os próprios personagens.
 - **Como artefato do Claude:** os dados também ficam salvos na conta de quem usa.
 
-Os personagens salvos no navegador somem ou deixam de aparecer quando:
+Sem conta Google, os personagens salvos no navegador somem ou deixam de aparecer quando:
 
 - os dados de navegação são limpos (cookies e dados de sites), à mão ou por um programa de limpeza;
 - a pessoa usa aba anônima: tudo some ao fechar a janela;
@@ -103,7 +104,8 @@ js/
     testes.js              um personagem de teste por classe
   armazenamento/
     migracoes.js           atualiza personagens salvos em versões antigas
-    armazenamento.js       salvar e carregar (conta do Claude ou localStorage)
+    armazenamento.js       salvar e carregar (localStorage, conta do Claude ou conta Google)
+    nuvem-conta.js         sincroniza fichas e campanhas com a conta Google entre aparelhos
   interface/
     tema.js, idioma.js     claro/escuro e PT/EN
     estado.js              aba atual, personagem ativo
@@ -159,6 +161,8 @@ banco-firebase.js   implementação com o Firebase (SDK carregado do CDN do Goog
 banco-local.js      banco simulado no navegador, para testar sem internet
 resumo.js           o que vai para o card do mestre (PV, CA, combate, efeitos)
 mesa.js             entrar, sair, enviar a ficha (jogador) e abrir, ouvir e fechar a mesa (mestre)
+firebase.js         carrega o SDK do Firebase uma vez (banco e login usam o mesmo)
+conta.js            login com Google (e o login simulado dos testes)
 combate.js          mapa, peças, monstros e iniciativa (a tela fica em js/telas/combate.js)
 ```
 
@@ -184,9 +188,11 @@ Pela mesa online, o botão **Abrir mapa de combate** (mestre, no hub) ou **Mapa*
 
 ### Configurar o Firebase (uma vez)
 
-1. No [console do Firebase](https://console.firebase.google.com), crie o projeto, o **Realtime Database** (modo bloqueado) e ative o login **Anônimo** em _Authentication → Método de login_.
+1. No [console do Firebase](https://console.firebase.google.com), crie o projeto e o **Realtime Database** (modo bloqueado). Em _Authentication → Sign-in method_, ative o **Anônimo** (mesa sem conta) e o **Google** (salvar as fichas na conta).
+   - O login com Google só funciona nos endereços listados em _Authentication → Settings → Authorized domains_. O `localhost` já vem na lista; adicione o domínio do site publicado, por exemplo `codex-do-aventureiro.pages.dev`.
 2. Copie a configuração do app web (_Configurações do projeto → Seus apps_) para `js/tempo-real/config.js`, incluindo o `databaseURL`.
-3. Em _Realtime Database → Regras_, cole o conteúdo de `database.rules.json` e clique em **Publicar**. As regras garantem que:
+3. Em _Realtime Database → Regras_, cole o conteúdo de `database.rules.json` e clique em **Publicar**. Sempre que esse arquivo mudar, publique de novo. As regras garantem que:
+   - cada pessoa só lê e grava as próprias fichas em `usuarios/<uid>`, e só com conta Google;
    - só quem entrou na mesa lê as fichas dela;
    - cada jogador só altera a própria ficha;
    - só o mestre altera os dados da mesa e pode fechá-la.

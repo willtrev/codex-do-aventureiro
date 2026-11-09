@@ -1,6 +1,7 @@
 /* ================= Tela inicial =================
    Aparece quando a pessoa ainda não tem nenhum personagem
    (primeiro acesso, ou depois de excluir todos). */
+import { contaDisponivel, seloConta } from "./conta.js";
 import { statusHTML, storeMode } from "../armazenamento/armazenamento.js";
 import { theme } from "../interface/tema.js";
 import { IDIOMAS, idioma } from "../interface/idioma.js";
@@ -21,7 +22,7 @@ export function vInicio() {
        .join("")}</span>`;
   document.getElementById("top").innerHTML = `
    <div class="idrow"><h1>Códex do Aventureiro</h1><span class="sub">Fichas de D&amp;D 3.5</span></div>
-   <div class="row"><span class="status" id="st">${statusHTML()}</span><span class="spacer"></span>${toggles}</div>`;
+   <div class="row"><span class="status" id="st">${statusHTML()}</span>${seloConta()}<span class="spacer"></span>${toggles}</div>`;
 
   if (nuvemPendente)
     return `<div class="grid"><section class="card c12 inicio-hero"><h2>Carregando</h2><p style="margin:0">Buscando seus personagens salvos…</p></section></div>`;
@@ -58,6 +59,11 @@ export function vInicio() {
         ? "Os personagens ficam salvos na sua conta e aparecem em qualquer aparelho em que você entrar."
         : "Os personagens ficam salvos <b>neste navegador</b>. Limpar os dados de navegação, usar aba anônima ou trocar de navegador ou de aparelho faz eles não aparecerem. Depois de cada sessão, use <b>Notas e backup → Copiar backup</b> e guarde o texto."
     }</p>
+    ${
+      storeMode !== "cloud" && contaDisponivel()
+        ? `<div class="row"><button class="btn pri" data-a="contaentrar">Entrar com Google</button><span class="small muted">As fichas ficam salvas na sua conta e aparecem em qualquer aparelho.</span></div>`
+        : ""
+    }
   </section>
   </div>`;
 }

@@ -47,6 +47,9 @@ import { render } from "./telas/topo.js";
 import { setNuvemPendente } from "./telas/inicio.js";
 import { abrirConvitePendente } from "./interface/eventos.js";
 import { reconectar } from "./tempo-real/mesa.js";
+import { iniciarConta } from "./tempo-real/conta.js";
+import { ligarConta } from "./armazenamento/nuvem-conta.js";
+import { contaDisponivel } from "./telas/conta.js";
 import { atualizarSelo } from "./telas/mesa-jogador.js";
 import { cur } from "./interface/estado.js";
 
@@ -63,10 +66,18 @@ import { cur } from "./interface/estado.js";
   migrate();
   render();
   abrirConvitePendente();
-  initCloud().finally(() => {
-    setNuvemPendente(false);
-    render();
-    // Se a ficha ativa estava numa mesa online, volta para ela
-    reconectar(cur()).then(atualizarSelo);
-  });
+  initCloud()
+    .then(async () => {
+      // Fora do Claude: se este navegador já entrou com Google, liga a conta
+      if (!contaDisponivel()) return;
+      const u = await iniciarConta();
+      if (u) await ligarConta(u);
+    })
+    .catch(() => {})
+    .finally(() => {
+      setNuvemPendente(false);
+      render();
+      // Se a ficha ativa estava numa mesa online, volta para ela
+      reconectar(cur()).then(atualizarSelo);
+    });
 })();

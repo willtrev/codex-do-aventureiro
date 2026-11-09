@@ -1,29 +1,13 @@
 /* ================= Banco em tempo real: Firebase =================
    Implementa a interface descrita em banco.js com o Realtime Database.
-   O SDK vem do CDN do Google e só é baixado quando alguém abre ou entra numa mesa. */
-import { FIREBASE_CONFIG, FIREBASE_VERSAO } from "./config.js";
-
-const cdn = (m) => `https://www.gstatic.com/firebasejs/${FIREBASE_VERSAO}/firebase-${m}.js`;
+   O SDK vem do CDN do Google e só é baixado quando a mesa ou a conta Google é usada. */
+import { carregarFirebase } from "./firebase.js";
 
 export async function criarBancoFirebase() {
-  const [app, auth, db] = await Promise.all([
-    import(/* @vite-ignore */ cdn("app")),
-    import(/* @vite-ignore */ cdn("auth")),
-    import(/* @vite-ignore */ cdn("database")),
-  ]);
-  const fb = app.initializeApp(FIREBASE_CONFIG, "codex-mesa");
-  const a = auth.getAuth(fb);
-  // Login anônimo: o Firebase guarda a sessão no navegador, então a pessoa mantém o mesmo uid
-  const usuario = await new Promise((ok, erro) => {
-    const parar = auth.onAuthStateChanged(a, (u) => {
-      if (u) {
-        parar();
-        ok(u);
-      }
-    });
-    if (!a.currentUser) auth.signInAnonymously(a).catch(erro);
-  });
-  const banco = db.getDatabase(fb);
+  const { authMod, dbMod: db, auth: a, db: banco } = await carregarFirebase();
+  // Sem conta Google, entra como anônimo: o Firebase guarda a sessão, então a pessoa mantém o mesmo uid
+  if (!a.currentUser) await authMod.signInAnonymously(a);
+  const usuario = a.currentUser;
   const r = (p) => db.ref(banco, p);
   const val = (s) => (s.exists() ? s.val() : null);
   return {
