@@ -147,7 +147,8 @@ export async function sairDaMesa(c, apagar = true) {
   try {
     const b = await conectarBanco();
     const chave = chaveFicha(b.uid, c);
-    await b.remover(`${base}/mapa/tokens/pj_${chave}`);
+    // Cada passo separado: se um falhar, os outros ainda acontecem
+    await b.remover(`${base}/mapa/tokens/pj_${chave}`).catch(() => {});
     await b.remover(`${base}/fichas/${chave}`);
     const fichas = (await b.ler(`${base}/fichas`)) || {};
     const outras = Object.keys(fichas).some((k) => uidDaFicha(k) === b.uid);

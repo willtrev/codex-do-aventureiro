@@ -21,12 +21,6 @@
             "online": {
               ".validate": "newData.isBoolean()"
             },
-            "removidas": {
-              "$ficha": {
-                ".read": "auth != null && ($ficha.beginsWith(auth.uid + '_') || root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid)",
-                ".write": "auth != null && (root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid || ($ficha.beginsWith(auth.uid + '_') && !newData.exists()))"
-              }
-            },
             "$outro": {
               ".validate": false
             }
@@ -38,8 +32,11 @@
             ".write": "auth != null && (($ficha.beginsWith(auth.uid + '_') && root.child('mesas').child($codigo).child('membros').child(auth.uid).exists() && !root.child('mesas').child($codigo).child('removidas').child($ficha).exists()) || root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid)"
           }
         },
-        "$outro": {
-          ".validate": false
+        "removidas": {
+          "$ficha": {
+            ".read": "auth != null && ($ficha.beginsWith(auth.uid + '_') || root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid)",
+            ".write": "auth != null && (root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid || ($ficha.beginsWith(auth.uid + '_') && !newData.exists()))"
+          }
         },
         "mapa": {
           ".read": "auth != null && root.child('mesas').child($codigo).child('membros').child(auth.uid).exists()",
@@ -51,10 +48,13 @@
           },
           "tokens": {
             "$id": {
-              ".write": "auth != null && root.child('mesas').child($codigo).child('membros').child(auth.uid).exists() && ((!data.exists() && newData.child('dono').val() === auth.uid) || (data.child('dono').val() === auth.uid && (!newData.exists() || newData.child('dono').val() === auth.uid)))",
+              ".write": "auth != null && root.child('mesas').child($codigo).child('membros').child(auth.uid).exists() && ((!data.exists() && (!newData.exists() || newData.child('dono').val() === auth.uid)) || (data.child('dono').val() === auth.uid && (!newData.exists() || newData.child('dono').val() === auth.uid)))",
               ".validate": "!newData.exists() || (newData.hasChildren(['x', 'y', 'dono']) && newData.child('x').isNumber() && newData.child('y').isNumber())"
             }
           }
+        },
+        "$outro": {
+          ".validate": false
         }
       }
     },
