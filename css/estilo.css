@@ -911,9 +911,11 @@ tr.na td {
     grid-template-columns: minmax(0, 1fr);
   }
 }
-.cb-lado {
+.cb-lado,
+.cb-esq {
   display: grid;
   gap: 16px;
+  min-width: 0;
 }
 .cb-rolagem {
   overflow: auto;
@@ -994,6 +996,7 @@ tr.na td {
   stroke-linecap: round;
 }
 .cb-ordem,
+.cb-pecas,
 .cb-monstros {
   list-style: none;
   margin: 0;
@@ -1012,6 +1015,20 @@ tr.na td {
   border-color: var(--warn);
   border-width: 2px;
   font-weight: 700;
+}
+.cb-pecas {
+  grid-template-columns: minmax(0, 1fr);
+}
+.cb-peca {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 8px;
+  align-items: baseline;
+}
+.cb-pecas .btn {
+  flex: none;
 }
 .cb-cor {
   width: 12px;

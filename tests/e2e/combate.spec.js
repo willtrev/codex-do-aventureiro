@@ -123,3 +123,36 @@ test("imagem de fundo enviada pelo mestre aparece para o jogador", async ({ page
   // proporção 2:1 com 20 colunas → 10 linhas
   await expect(jogador.locator("#cb_svg")).toHaveAttribute("aria-label", /20 por 10/);
 });
+
+test("lista de peças embaixo do mapa: o mestre remove monstros e tira personagens da mesa", async ({
+  page: mestre,
+  context,
+}) => {
+  const jogador = await prepararMesa(mestre, context);
+  await mestre.fill("#cbm_nome", "Goblin");
+  await mestre.fill("#cbm_qtd", "2");
+  await mestre.getByRole("button", { name: "Adicionar ao mapa" }).click();
+
+  const pecas = mestre.locator("#cb_pecas li");
+  await expect(pecas).toHaveCount(3);
+  await expect(pecas.first()).toContainText("Volis E'gurar");
+  await expect(pecas.first()).toContainText("Personagem de jogador");
+  await expect(jogador.locator("#cb_pecas")).toHaveCount(0); // só o mestre vê a lista
+
+  // Monstro: some do mapa dos dois
+  await mestre
+    .locator("#cb_pecas")
+    .getByRole("button", { name: /Remover Goblin/ })
+    .first()
+    .click();
+  await expect(pecas).toHaveCount(2);
+  await expect(jogador.locator(".tk")).toHaveCount(2);
+
+  // Personagem: confirma, sai da mesa e o jogador é desconectado
+  await mestre.locator("#cb_pecas").getByRole("button", { name: "Tirar Volis E'gurar da mesa" }).click();
+  await expect(mestre.locator(".modal")).toContainText("O jogador é desconectado");
+  await mestre.locator('.modal [data-a="cbtirarok"]').click();
+  await expect(pecas).toHaveCount(1);
+  await expect(mestre.locator('.tk[id^="tk_pj_"]')).toHaveCount(0);
+  await expect(jogador.locator("#mesaselo")).toContainText("O mestre tirou Volis E'gurar da mesa");
+});

@@ -217,10 +217,10 @@ export async function abrirMesa(g) {
  * Mestre tira um personagem da mesa: marca como removido (o jogador corta a conexão sozinho
  * e não volta ao reabrir o app) e apaga a ficha e a peça do mapa.
  */
-export async function tirarDaMesa(g, chave) {
-  if (!g || !g.mesa || !chave) return;
+export async function tirarDaMesa(codigo, chave) {
+  if (!codigo || !chave) return;
   const b = await conectarBanco();
-  const base = `mesas/${g.mesa.codigo}`;
+  const base = `mesas/${codigo}`;
   await b.gravar(`${base}/removidas/${chave}`, true);
   await b.remover(`${base}/fichas/${chave}`);
   await b.remover(`${base}/mapa/tokens/pj_${chave}`);

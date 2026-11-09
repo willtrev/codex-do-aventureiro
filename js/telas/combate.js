@@ -162,6 +162,39 @@ function listaMonstros() {
     })
     .join("")}</ul>`;
 }
+/* Lista de peças embaixo do mapa (só o mestre): tudo que está no mapa, com o botão de tirar */
+export let pecaATirar = null;
+export const setPecaATirar = (v) => (pecaATirar = v);
+const ROTULO_ESTADO = {
+  ileso: "ileso",
+  ferido: "ferido",
+  "muito ferido": "muito ferido",
+  caído: "caído",
+  morrendo: "morrendo",
+  morto: "morto",
+};
+function listaPecas() {
+  const pecas = Object.entries(mesaCombate.tokens)
+    .filter(([, t]) => t && t.nome)
+    .sort(
+      ([, a], [, b]) => (a.tipo === "pj" ? 0 : 1) - (b.tipo === "pj" ? 0 : 1) || String(a.nome).localeCompare(b.nome)
+    );
+  if (!pecas.length) return `<p class="small muted" style="margin:0">Nenhuma peça no mapa.</p>`;
+  return `<ul class="cb-pecas">${pecas
+    .map(([id, t]) => {
+      const pj = t.tipo === "pj";
+      // Peça de personagem cuja ficha já saiu da mesa (sobrou de antes): só tira do mapa
+      const naMesa = pj && t.ficha && mesaCombate.fichas[t.ficha];
+      const tipo = pj ? (naMesa ? "Personagem de jogador" : "Personagem (fora da mesa)") : "Monstro / NPC";
+      const botao = naMesa
+        ? `<button class="btn sm ghost" data-a="cbtirar" data-id="${id}" aria-label="Tirar ${esc(t.nome)} da mesa">Tirar da mesa</button>`
+        : `<button class="btn sm ghost" data-a="cbremover" data-id="${id}" aria-label="Remover ${esc(t.nome)} do mapa">Remover</button>`;
+      return `<li class="cb-item"><span class="cb-cor" style="background:${esc(t.cor || "#888")}"></span>
+        <span class="cb-peca"><b>${esc(t.nome)}</b><span class="small muted">${tipo} · ${ROTULO_ESTADO[estadoDoToken(id, t)] || "ileso"}</span></span>${botao}</li>`;
+    })
+    .join("")}</ul>`;
+}
+
 function painelMonstros() {
   return `<h2>Monstros e NPCs</h2>
     <p class="small muted" style="margin:0">Os jogadores veem só o estado (ileso, ferido, muito ferido, caído).</p>
@@ -220,8 +253,11 @@ export function vCombate() {
   const mestre = ctx.papel === "mestre";
   const carregando = mesaCombate.codigo !== ctx.codigo || mesaCombate.papel !== ctx.papel;
   return `<div class="cb-layout">
+    <div class="cb-esq">
     <section class="card cb-mapa"><div class="cb-rolagem" id="cb_area">${carregando ? `<p class="muted">Carregando o mapa…</p>` : mapaSVG()}</div>
       <p class="small muted" style="margin:0">${mestre ? "Arraste qualquer peça." : "Arraste a sua peça (contorno destacado). Com ela selecionada, as setas do teclado também movem."}</p></section>
+    ${mestre ? `<section class="card"><h2>Peças no mapa</h2><div id="cb_pecas">${carregando ? "" : listaPecas()}</div></section>` : ""}
+    </div>
     <aside class="cb-lado">
       <section class="card" id="cb_ordem">${painelOrdem()}</section>
       ${mestre ? `<section class="card" id="cb_monstros">${painelMonstros()}</section><section class="card" id="cb_cfg">${painelMapa()}</section>` : ""}
@@ -271,6 +307,10 @@ function atualizarOrdem() {
   }
   el.innerHTML = painelOrdem();
 }
+function atualizarPecas() {
+  const el = $("cb_pecas");
+  if (el) el.innerHTML = listaPecas();
+}
 function atualizarTodosTokens() {
   Object.keys(mesaCombate.tokens).forEach(atualizarToken);
 }
@@ -282,6 +322,7 @@ const avisos = {
     atualizarOrdem();
     const l = $("cb_lista");
     if (l) l.innerHTML = listaMonstros();
+    atualizarPecas();
   },
   combate: () => {
     atualizarOrdem();
@@ -305,6 +346,7 @@ const avisos = {
     const id = "pj_" + chave;
     if (mesaCombate.tokens[id]) atualizarToken(id);
     atualizarOrdem();
+    atualizarPecas();
   },
 };
 
@@ -323,6 +365,7 @@ export async function montarCombate() {
     const a = $("cb_area");
     if (a) a.innerHTML = mapaSVG();
     atualizarOrdem();
+    atualizarPecas();
   }
   const area = $("cb_area");
   if (area && !area.dataset.ligado) {

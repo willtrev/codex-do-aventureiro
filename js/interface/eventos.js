@@ -14,7 +14,7 @@ import { convite, cur, getPath, irPara, readHash, setConvite, setPath } from "./
 import { entrarMesaModal, atualizarSelo } from "../telas/mesa-jogador.js";
 import { entrarComGoogle, sairDaConta } from "../tempo-real/conta.js";
 import { desligarConta, ligarConta } from "../armazenamento/nuvem-conta.js";
-import { setPapelPreferido } from "../telas/combate.js";
+import { pecaATirar, setPapelPreferido, setPecaATirar } from "../telas/combate.js";
 import {
   adicionarMonstros,
   encerrarCombate,
@@ -577,6 +577,25 @@ async function aoClicar(e) {
     case "cbremover":
       await removerToken(b.dataset.id);
       break;
+    case "cbtirar": {
+      // Personagem de jogador: sai da mesa (ficha, peça e conexão do jogador)
+      const t = mesaCombate.tokens[b.dataset.id];
+      if (t)
+        confirmModal(
+          `Tirar ${t.nome} da mesa? O jogador é desconectado e a peça sai do mapa. A ficha dele não é afetada.`,
+          "cbtirarok"
+        );
+      setPecaATirar(b.dataset.id);
+      break;
+    }
+    case "cbtirarok": {
+      const t = mesaCombate.tokens[pecaATirar];
+      closeModal();
+      if (!t) break;
+      await removerToken(pecaATirar);
+      if (t.ficha) await tirarDaMesa(mesaCombate.codigo, t.ficha);
+      break;
+    }
     case "cbcfg":
       await salvarConfig({
         colunas: clamp(+document.getElementById("cbc_col").value || 20, 5, 60),
@@ -753,7 +772,7 @@ async function aoClicar(e) {
       const g = campanha();
       const m = g.membros.find((x) => x.mid === membroARemover);
       // Personagem que veio pela mesa: também sai da mesa (o jogador é desconectado)
-      if (m && m.uid && g.mesa && m.origem === "mesa") await tirarDaMesa(g, m.uid);
+      if (m && m.uid && g.mesa && m.origem === "mesa") await tirarDaMesa(g.mesa.codigo, m.uid);
       g.membros = g.membros.filter((x) => x.mid !== membroARemover);
       salvarCampanha(g);
       closeModal();
