@@ -190,7 +190,12 @@ document.addEventListener("change", (e) => {
     return;
   }
 });
-document.addEventListener("click", async (e) => {
+/* Erros dos cliques (por exemplo, o banco da mesa recusando uma gravação) viram uma janela
+   explicando o problema, em vez de o botão simplesmente não fazer nada. */
+document.addEventListener("click", (e) =>
+  aoClicar(e).catch((err) => modal_erro(mensagemDeErro(err), "Não foi possível concluir"))
+);
+async function aoClicar(e) {
   const b = e.target.closest("[data-a]");
   if (!b) return;
   const a = b.dataset.a,
@@ -776,7 +781,7 @@ document.addEventListener("click", async (e) => {
       break;
     }
   }
-});
+}
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeModal();
 });
@@ -796,8 +801,9 @@ export function abrirConvitePendente() {
 }
 
 /** Janela de aviso de erro, com um botão só. */
-function modal_erro(texto) {
+function modal_erro(texto, titulo = "Não foi possível abrir a mesa") {
+  console.error(texto);
   modal(
-    `<h2 style="font-size:18px;color:var(--ink)">Não foi possível abrir a mesa</h2><p style="margin:0;line-height:1.5">${esc(texto)}</p><div class="row"><button class="btn pri" data-a="close">Entendi</button></div>`
+    `<h2 style="font-size:18px;color:var(--ink)">${esc(titulo)}</h2><p style="margin:0;line-height:1.5">${esc(texto)}</p><div class="row"><button class="btn pri" data-a="close">Entendi</button></div>`
   );
 }
