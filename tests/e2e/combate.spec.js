@@ -64,12 +64,34 @@ test("PV do monstro ficam com o mestre; o jogador vê só o estado", async ({ pa
   await expect(jogador.locator("#cb_monstros")).toHaveCount(0);
 });
 
-test("iniciativa: o mestre rola e passa a vez; o jogador vê quando é a vez dele", async ({ page: mestre, context }) => {
+test("iniciativa: todos entram na lista e o mestre define a ordem", async ({ page: mestre, context }) => {
   const jogador = await prepararMesa(mestre, context);
-  await mestre.getByRole("button", { name: "Rolar iniciativa e começar" }).click();
-  await expect(jogador.locator("#cb_ordem")).toContainText("Rodada 1");
-  // Só o personagem está no mapa: a vez é dele
+  await mestre.fill("#cbm_nome", "Goblin");
+  await mestre.getByRole("button", { name: "Adicionar ao mapa" }).click();
+  await mestre.getByRole("button", { name: "Começar combate" }).click();
+  const nomes = (p) => p.locator("#cb_ordem .cb-nome");
+  await expect(nomes(jogador)).toHaveText(["Volis E'gurar", "Goblin"]);
   await expect(jogador.locator("#cb_ordem")).toContainText("É a sua vez!");
+
+  // Mestre sobe o Goblin com a seta
+  await mestre.getByRole("button", { name: "Subir Goblin" }).click();
+  await expect(nomes(jogador)).toHaveText(["Goblin", "Volis E'gurar"]);
+
+  // Ou anota os valores e ordena
+  await mestre.getByLabel("Iniciativa de Volis E'gurar").fill("17");
+  await mestre.getByLabel("Iniciativa de Goblin").fill("9");
+  await mestre.getByLabel("Iniciativa de Goblin").blur();
+  await mestre.getByRole("button", { name: "Ordenar pelos valores" }).click();
+  await expect(nomes(jogador)).toHaveText(["Volis E'gurar", "Goblin"]);
+  await expect(jogador.locator("#cb_ordem .cb-valor")).toHaveText(["17", "9"]);
+
+  // Monstro novo entra no fim da lista
+  await mestre.fill("#cbm_nome", "Ogro");
+  await mestre.getByRole("button", { name: "Adicionar ao mapa" }).click();
+  await expect(nomes(jogador)).toHaveText(["Volis E'gurar", "Goblin", "Ogro"]);
+
+  await mestre.getByRole("button", { name: "Próximo" }).click();
+  await mestre.getByRole("button", { name: "Próximo" }).click();
   await mestre.getByRole("button", { name: "Próximo" }).click();
   await expect(jogador.locator("#cb_ordem")).toContainText("Rodada 2");
   await mestre.getByRole("button", { name: "Encerrar" }).click();

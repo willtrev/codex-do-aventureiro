@@ -17,6 +17,9 @@ import {
   adicionarMonstros,
   encerrarCombate,
   iniciarCombate,
+  definirValor,
+  moverParticipante,
+  ordenarCombate,
   mesaCombate,
   mudarPVMonstro,
   passarVez,
@@ -139,6 +142,10 @@ document.addEventListener("change", (e) => {
       salvarCampanha(campanha());
       topoMestre();
     }
+    return;
+  }
+  if (el.dataset.a === "cbvalor") {
+    definirValor(el.dataset.id, el.value).catch((err) => modal_erro(mensagemDeErro(err), "Não foi possível concluir"));
     return;
   }
   if (el.dataset.a === "cbfundo" && el.files && el.files[0]) {
@@ -499,6 +506,13 @@ async function aoClicar(e) {
     case "cbrolar":
       await iniciarCombate();
       break;
+    case "cbsubir":
+    case "cbdescer":
+      await moverParticipante(b.dataset.id, a === "cbsubir" ? -1 : 1);
+      break;
+    case "cbordenar":
+      await ordenarCombate();
+      break;
     case "cbproximo":
       await passarVez(1);
       break;
@@ -521,7 +535,7 @@ async function aoClicar(e) {
         nome,
         pv: Math.max(1, +v("cbm_pv") || 1),
         ca: +v("cbm_ca") || 10,
-        ini: +v("cbm_ini") || 0,
+        ini: 0,
         quantidade: clamp(+v("cbm_qtd") || 1, 1, 20),
       });
       document.getElementById("cbm_nome").value = "";

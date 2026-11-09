@@ -12,6 +12,7 @@ import { statusHTML } from "../armazenamento/armazenamento.js";
 import { campanha } from "./mestre.js";
 import {
   TAM_CASA as T,
+  incluirNaOrdem,
   encaixar,
   entrarNoCombate,
   estadoPorPV,
@@ -114,17 +115,25 @@ function painelOrdem() {
   const mestre = mesaCombate.papel === "mestre";
   if (!cb || !cb.ordem)
     return `<h2>Iniciativa</h2><p class="small muted" style="margin:0">Combate não começou.</p>
-      ${mestre ? `<button class="btn pri" data-a="cbrolar">Rolar iniciativa e começar</button><p class="small muted" style="margin:0">Rola d20 + iniciativa para cada peça no mapa.</p>` : ""}`;
+      ${mestre ? `<button class="btn pri" data-a="cbrolar">Começar combate</button><p class="small muted" style="margin:0">Todas as peças do mapa entram na lista. Depois é só pôr na ordem.</p>` : ""}`;
   const minha = Object.entries(mesaCombate.tokens).find(([, t]) => t.dono === mesaCombate.uid);
   const minhaVez = minha && cb.vez === minha[0];
-  const linhas = cb.ordem
-    .filter((o) => mesaCombate.tokens[o.id])
-    .map((o) => {
+  const ordem = cb.ordem.filter((o) => mesaCombate.tokens[o.id]);
+  const linhas = ordem
+    .map((o, i) => {
       const t = mesaCombate.tokens[o.id];
       const est = estadoDoToken(o.id, t);
+      const valor = o.valor === null || o.valor === undefined ? "" : o.valor;
+      const controles = mestre
+        ? `<input class="cb-val" type="number" value="${esc(valor)}" data-a="cbvalor" data-id="${o.id}" aria-label="Iniciativa de ${esc(t.nome)}" placeholder="—">
+           <button class="btn sm ghost cb-seta" data-a="cbsubir" data-id="${o.id}" ${i === 0 ? "disabled" : ""} aria-label="Subir ${esc(t.nome)}">▲</button>
+           <button class="btn sm ghost cb-seta" data-a="cbdescer" data-id="${o.id}" ${i === ordem.length - 1 ? "disabled" : ""} aria-label="Descer ${esc(t.nome)}">▼</button>`
+        : valor !== ""
+          ? `<b class="cb-valor">${esc(valor)}</b>`
+          : "";
       return `<li class="cb-item ${o.id === cb.vez ? "vez" : ""}" ${o.id === cb.vez ? 'aria-current="true"' : ""}>
-        <span class="cb-cor" style="background:${esc(t.cor)}"></span><b class="cb-valor">${o.valor}</b>
-        <span class="cb-nome">${esc(t.nome)}</span><span class="small muted">${est === "ileso" ? "" : esc(est)}</span></li>`;
+        <span class="cb-pos">${i + 1}</span><span class="cb-cor" style="background:${esc(t.cor)}"></span>
+        <span class="cb-nome">${esc(t.nome)}${est === "ileso" ? "" : ` <span class="small muted">${esc(est)}</span>`}</span>${controles}</li>`;
     })
     .join("");
   return `<div class="row"><h2>Iniciativa</h2><span class="spacer"></span><span class="tag">Rodada ${cb.rodada}</span></div>
@@ -132,7 +141,9 @@ function painelOrdem() {
     <ol class="cb-ordem">${linhas}</ol>
     ${
       mestre
-        ? `<div class="row"><button class="btn" data-a="cbanterior">Anterior</button><button class="btn pri" data-a="cbproximo">Próximo</button><span class="spacer"></span><button class="btn sm ghost" data-a="cbrolar">Rolar de novo</button><button class="btn sm danger" data-a="cbencerrar">Encerrar</button></div>`
+        ? `<p class="small muted" style="margin:0">Use ▲ ▼ para pôr na ordem, ou anote o valor de cada um e clique em Ordenar pelos valores.</p>
+          <div class="row"><button class="btn sm" data-a="cbordenar">Ordenar pelos valores</button></div>
+          <div class="row"><button class="btn" data-a="cbanterior">Anterior</button><button class="btn pri" data-a="cbproximo">Próximo</button><span class="spacer"></span><button class="btn sm danger" data-a="cbencerrar">Encerrar</button></div>`
         : ""
     }`;
 }
@@ -143,7 +154,7 @@ function listaMonstros() {
     .map(([id, t]) => {
       const m = mesaCombate.monstros[id] || {};
       return `<li class="cb-monstro"><div style="flex:1;min-width:0"><b>${esc(t.nome)}</b>
-        <div class="small muted">PV ${m.pv ?? "?"}/${m.pvMax ?? "?"} · CA ${m.ca ?? "?"} · Inic. ${sg(+m.ini || 0)} · ${esc(t.estado || "ileso")}</div></div>
+        <div class="small muted">PV ${m.pv ?? "?"}/${m.pvMax ?? "?"} · CA ${m.ca ?? "?"} · ${esc(t.estado || "ileso")}</div></div>
         <button class="btn sm" data-a="cbdano" data-id="${id}" aria-label="Dano em ${esc(t.nome)}">Dano</button>
         <button class="btn sm" data-a="cbcura" data-id="${id}" aria-label="Curar ${esc(t.nome)}">Cura</button>
         <button class="btn sm ghost" data-a="cbremover" data-id="${id}" aria-label="Remover ${esc(t.nome)}">✕</button></li>`;
@@ -157,7 +168,6 @@ function painelMonstros() {
       <label class="f" for="cbm_nome">Nome<input id="cbm_nome" type="text" placeholder="ex.: Goblin"></label>
       <label class="f" for="cbm_pv">PV<input id="cbm_pv" type="number" min="1" value="6"></label>
       <label class="f" for="cbm_ca">CA<input id="cbm_ca" type="number" value="15"></label>
-      <label class="f" for="cbm_ini">Inic.<input id="cbm_ini" type="number" value="1"></label>
       <label class="f" for="cbm_qtd">Qtd.<input id="cbm_qtd" type="number" min="1" max="20" value="1"></label>
     </div>
     <div class="row"><button class="btn pri" data-a="cbaddmonstro">Adicionar ao mapa</button><span id="cbm_msg" class="small" style="color:var(--bad)" role="status"></span></div>
@@ -239,9 +249,26 @@ function atualizarToken(id) {
   el.style.transform = `translate(${t.x * T}px,${t.y * T}px)`;
   el.innerHTML = dentroDoToken(id, t);
 }
+let ordemPendente = false;
 function atualizarOrdem() {
   const el = $("cb_ordem");
-  if (el) el.innerHTML = painelOrdem();
+  if (!el) return;
+  // Se o mestre está digitando um valor de iniciativa, espera ele sair do campo
+  if (el.contains(document.activeElement) && document.activeElement.tagName === "INPUT") {
+    if (!ordemPendente) {
+      ordemPendente = true;
+      el.addEventListener(
+        "focusout",
+        () => {
+          ordemPendente = false;
+          setTimeout(atualizarOrdem, 0);
+        },
+        { once: true }
+      );
+    }
+    return;
+  }
+  el.innerHTML = painelOrdem();
 }
 function atualizarTodosTokens() {
   Object.keys(mesaCombate.tokens).forEach(atualizarToken);
@@ -249,6 +276,8 @@ function atualizarTodosTokens() {
 const avisos = {
   tokens: (id) => {
     atualizarToken(id);
+    // Peça nova com o combate em andamento entra no fim da lista (o mestre grava)
+    if (mesaCombate.papel === "mestre" && mesaCombate.tokens[id]) incluirNaOrdem(id);
     atualizarOrdem();
     const l = $("cb_lista");
     if (l) l.innerHTML = listaMonstros();

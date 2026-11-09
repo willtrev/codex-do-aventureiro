@@ -174,10 +174,12 @@ Pela mesa online, o botão **Abrir mapa de combate** (mestre, no hub) ou **Mapa*
   - o jogador arrasta só a própria peça (ou usa as setas do teclado com ela selecionada) e o mestre arrasta qualquer uma;
   - durante o arrasto a peça se move só na tela de quem arrasta; a posição vai para o banco ao soltar e os outros veem a peça deslizar até lá.
 - **Monstros e NPCs:**
-  - o mestre adiciona com nome, PV, CA, iniciativa e quantidade, e aplica dano e cura;
+  - o mestre adiciona com nome, PV, CA e quantidade, e aplica dano e cura;
   - os PV e a CA ficam em `privado/<CÓDIGO>`, que só o mestre lê, e os jogadores veem só o estado (ferido, muito ferido, caído).
 - **Iniciativa:**
-  - o mestre rola d20 + iniciativa para todas as peças e passa a vez;
+  - **Começar combate** põe todas as peças do mapa na lista, e peças que entram depois vão para o fim;
+  - o mestre define a ordem com ▲ ▼ ou anota o valor que cada um tirou e clica em **Ordenar pelos valores**;
+  - o mestre passa a vez com **Anterior** e **Próximo**;
   - todos veem a ordem, a rodada e de quem é a vez, e o jogador vê "É a sua vez!".
 
 ### Configurar o Firebase (uma vez)

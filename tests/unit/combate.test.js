@@ -8,7 +8,9 @@ import {
   estadoPorPV,
   iniciais,
   proximaVez,
-  rolarIniciativa,
+  moverNaOrdem,
+  ordemInicial,
+  ordenarPorValor,
 } from "../../js/tempo-real/combate.js";
 
 test("estado do monstro a partir dos PV, sem revelar números", () => {
@@ -20,38 +22,47 @@ test("estado do monstro a partir dos PV, sem revelar números", () => {
   assert.equal(estadoPorPV(-10, 10), "morto");
 });
 
-test("iniciativa: maior total primeiro; empate decide pelo maior modificador", () => {
-  const dados = [10, 10, 15];
-  const ordem = rolarIniciativa(
-    [
-      { id: "a", nome: "Ana", mod: 1 },
-      { id: "b", nome: "Bruno", mod: 3 },
-      { id: "c", nome: "Goblin", mod: 0 },
-    ],
-    () => dados.shift()
+test("iniciativa: começa com todos, personagens antes dos monstros", () => {
+  const ordem = ordemInicial({
+    m1: { nome: "Goblin", tipo: "monstro" },
+    p1: { nome: "Volis", tipo: "pj" },
+    x: { x: 0, y: 0 }, // sem nome: reserva de casa, não participa
+  });
+  assert.deepEqual(ordem, [
+    { id: "p1", valor: null },
+    { id: "m1", valor: null },
+  ]);
+});
+
+test("o mestre move participantes para cima e para baixo", () => {
+  const o = [{ id: "a" }, { id: "b" }, { id: "c" }];
+  assert.deepEqual(
+    moverNaOrdem(o, "c", -1).map((x) => x.id),
+    ["a", "c", "b"]
   );
   assert.deepEqual(
-    ordem.map((o) => [o.id, o.valor]),
-    [
-      ["c", 15],
-      ["b", 13],
-      ["a", 11],
-    ]
-  );
-  const empate = rolarIniciativa(
-    [
-      { id: "x", nome: "X", mod: 1 },
-      { id: "y", nome: "Y", mod: 4 },
-    ],
-    (() => {
-      const d = [13, 10];
-      return () => d.shift();
-    })()
+    moverNaOrdem(o, "a", -1).map((x) => x.id),
+    ["a", "b", "c"],
+    "o primeiro não sobe"
   );
   assert.deepEqual(
-    empate.map((o) => o.id),
-    ["y", "x"],
-    "14 a 14: vence quem tem +4"
+    moverNaOrdem(o, "c", 1).map((x) => x.id),
+    ["a", "b", "c"],
+    "o último não desce"
+  );
+});
+
+test("ordenar pelos valores anotados; sem valor vai para o fim, mantendo a ordem", () => {
+  const o = [
+    { id: "a", valor: null },
+    { id: "b", valor: 12 },
+    { id: "c", valor: 18 },
+    { id: "d", valor: null },
+    { id: "e", valor: 12 },
+  ];
+  assert.deepEqual(
+    ordenarPorValor(o).map((x) => x.id),
+    ["c", "b", "e", "a", "d"]
   );
 });
 

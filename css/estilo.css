@@ -1046,3 +1046,17 @@ tr.na td {
 .cb-suavez {
   border-color: var(--warn);
 }
+.cb-pos {
+  width: 1.4em;
+  text-align: right;
+  color: var(--muted);
+  font-size: 12px;
+}
+.cb-val {
+  width: 56px;
+  padding: 4px 6px;
+}
+.cb-seta {
+  padding: 2px 6px;
+  min-width: 0;
+}

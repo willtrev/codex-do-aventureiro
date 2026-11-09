@@ -57,18 +57,32 @@ export function casaLivre(tokens, cfg) {
   for (let y = 0; y < L; y++) for (let x = 0; x < C; x++) if (!ocupadas.has(x + "," + y)) return { x, y };
   return { x: 0, y: 0 };
 }
-/**
- * Ordem de iniciativa: d20 + modificador de cada peça, do maior para o menor.
- * Empate: maior modificador primeiro (regra do Livro do Jogador), depois o nome.
- */
-export function rolarIniciativa(participantes, d20 = () => 1 + Math.floor(Math.random() * 20)) {
-  return participantes
-    .map((p) => {
-      const dado = d20();
-      return { id: p.id, nome: p.nome, mod: p.mod, dado, valor: dado + p.mod };
-    })
-    .sort((a, b) => b.valor - a.valor || b.mod - a.mod || a.nome.localeCompare(b.nome))
-    .map(({ id, valor, dado, mod }) => ({ id, valor, dado, mod }));
+/* Ordem de iniciativa: o app só põe todo mundo na lista; quem decide a ordem é o mestre,
+   movendo cada um para cima ou para baixo, ou anotando o valor que cada um tirou. */
+
+/** Todos os participantes na ordem inicial: personagens primeiro, depois monstros. */
+export function ordemInicial(tokens) {
+  return Object.entries(tokens)
+    .filter(([, t]) => t.nome)
+    .sort(([, a], [, b]) => (a.tipo === "pj" ? 0 : 1) - (b.tipo === "pj" ? 0 : 1))
+    .map(([id]) => ({ id, valor: null }));
+}
+/** Move um participante uma posição para cima (-1) ou para baixo (+1). */
+export function moverNaOrdem(ordem, id, sentido) {
+  const i = ordem.findIndex((o) => o.id === id),
+    j = i + sentido;
+  if (i < 0 || j < 0 || j >= ordem.length) return ordem;
+  const nova = ordem.slice();
+  [nova[i], nova[j]] = [nova[j], nova[i]];
+  return nova;
+}
+/** Ordena pelo valor anotado (maior primeiro); quem não tem valor fica no fim, na mesma ordem. */
+export function ordenarPorValor(ordem) {
+  const tem = (o) => o.valor !== null && o.valor !== undefined && o.valor !== "";
+  return ordem
+    .map((o, i) => ({ o, i }))
+    .sort((a, b) => tem(b.o) - tem(a.o) || (tem(a.o) ? b.o.valor - a.o.valor : 0) || a.i - b.i)
+    .map((x) => x.o);
 }
 /** Passa a vez; ao voltar ao primeiro da ordem, começa uma nova rodada. */
 export function proximaVez(combate, sentido = 1) {
@@ -269,22 +283,35 @@ export async function removerToken(id) {
     );
   }
 }
-/** Modificador de iniciativa de cada peça: ficha do jogador ou o informado para o monstro. */
-export function participantes() {
-  return Object.entries(mesaCombate.tokens)
-    .filter(([, t]) => t.nome)
-    .map(([id, t]) => {
-      const mod =
-        t.tipo === "pj"
-          ? (mesaCombate.fichas[t.dono] || {}).iniciativa || 0
-          : (mesaCombate.monstros[id] || {}).ini || 0;
-      return { id, nome: t.nome, mod: +mod || 0 };
-    });
-}
-export async function iniciarCombate() {
-  const ordem = rolarIniciativa(participantes());
+async function gravarCombate(cb) {
   const b = await conectarBanco();
-  await b.gravar(caminho("combate"), { rodada: 1, vez: ordem.length ? ordem[0].id : null, ordem });
+  await b.gravar(caminho("combate"), cb);
+}
+/** Começa o combate com todas as peças do mapa na lista. */
+export async function iniciarCombate() {
+  const ordem = ordemInicial(mesaCombate.tokens);
+  await gravarCombate({ rodada: 1, vez: ordem.length ? ordem[0].id : null, ordem });
+}
+export async function moverParticipante(id, sentido) {
+  const cb = mesaCombate.combate;
+  if (cb) await gravarCombate({ ...cb, ordem: moverNaOrdem(cb.ordem || [], id, sentido) });
+}
+export async function definirValor(id, valor) {
+  const cb = mesaCombate.combate;
+  if (!cb) return;
+  const v = valor === "" || valor === null || isNaN(+valor) ? null : +valor;
+  await gravarCombate({ ...cb, ordem: (cb.ordem || []).map((o) => (o.id === id ? { ...o, valor: v } : o)) });
+}
+export async function ordenarCombate() {
+  const cb = mesaCombate.combate;
+  if (cb) await gravarCombate({ ...cb, ordem: ordenarPorValor(cb.ordem || []) });
+}
+/** Peça que entrou no mapa com o combate em andamento vai para o fim da lista. */
+export async function incluirNaOrdem(id) {
+  const cb = mesaCombate.combate;
+  const t = mesaCombate.tokens[id];
+  if (!cb || !t || !t.nome || (cb.ordem || []).some((o) => o.id === id)) return;
+  await gravarCombate({ ...cb, ordem: [...(cb.ordem || []), { id, valor: null }] });
 }
 export async function passarVez(sentido = 1) {
   if (!mesaCombate.combate) return;
