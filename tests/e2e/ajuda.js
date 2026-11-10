@@ -68,6 +68,7 @@ export async function expor(page) {
 /** Carrega o Volis e os 11 personagens de teste pela tela inicial. */
 export async function carregarExemplos(page) {
   await page.getByRole("button", { name: "Carregar exemplos" }).click();
+  await page.getByRole("button", { name: "Carregar selecionados" }).click(); // todos vêm marcados
   await expect(page.locator("#top h1")).toHaveText("Volis E'gurar");
 }
 /** Vai para uma aba do personagem ativo. */

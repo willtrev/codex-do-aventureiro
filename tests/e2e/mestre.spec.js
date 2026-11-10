@@ -31,10 +31,10 @@ test("hub do mestre: criar campanha, importar fichas e ordenar", async ({ page }
   await expect(page.locator(".mcard")).toHaveCount(3);
 
   await page.selectOption("#camp_ord", "nome");
-  await expect(page.locator(".mnome")).toHaveText(["Teste Bárbaro", "Teste Bardo", "Teste Clérigo"]);
-  // iniciativa: Bardo (+6) antes de Bárbaro (+1) e Clérigo (−1)
+  await expect(page.locator(".mnome")).toHaveText(["Durgan Pedrafiel", "Grosh Quebra-Escudos", "Lírian Voz-de-Prata"]);
+  // iniciativa: Lírian (bardo, +6) antes de Grosh (bárbaro, +1) e Durgan (clérigo, −1)
   await page.selectOption("#camp_ord", "iniciativa");
-  await expect(page.locator(".mnome")).toHaveText(["Teste Bardo", "Teste Bárbaro", "Teste Clérigo"]);
+  await expect(page.locator(".mnome")).toHaveText(["Lírian Voz-de-Prata", "Grosh Quebra-Escudos", "Durgan Pedrafiel"]);
 
   await page.locator('.mcard [data-a="mdetalhe"]').first().click();
   await expect(page.locator(".modal")).toContainText("Armas");

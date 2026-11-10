@@ -27,7 +27,7 @@ Ficha de personagem interativa para **D&D 3.5**. Faz os cálculos da ficha e aco
 - **Idioma do conteúdo:** **PT + EN** (padrão), **PT** ou **EN**. Os rótulos da interface continuam em português.
 - **Tema:** claro, escuro ou automático, no estilo Flat Design.
 - **Hub do mestre** (`#mestre`): o mestre cria e nomeia campanhas e traz as fichas dos jogadores (PDF, texto de backup ou fichas do próprio aparelho). Cada personagem vira um card com PV, CA, toque, surpresa, iniciativa, testes de resistência, BBA, agarrar, deslocamento e inspiração, com ordenação por nome, iniciativa, PV ou CA. **Detalhes** abre atributos, armas, magias de hoje, habilidades, perícias e talentos. Os cards são cópias: importar de novo uma ficha com o mesmo nome atualiza o card.
-- **Tela inicial:** o primeiro acesso começa sem personagens. Dá para criar um, importar uma ficha em PDF ou um backup, ou carregar os exemplos (Volis e um personagem de teste de nível 1 por classe).
+- **Tela inicial:** o primeiro acesso começa sem personagens. Dá para criar um, importar uma ficha em PDF ou um backup, ou carregar exemplos, escolhendo um ou vários (Volis e um aventureiro de nível 1 de cada classe, como Grosh Quebra-Escudos, o bárbaro). Logo abaixo da apresentação, em destaque, a tela explica onde os dados ficam salvos.
 
 ## Como usar
 
@@ -103,7 +103,7 @@ js/
     calculos.js            CA, perícias, ataques, CD, carga
   personagens/
     modelos.js             personagem em branco e o exemplo Volis
-    testes.js              um personagem de teste por classe
+    testes.js              um personagem pronto por classe (os exemplos)
   armazenamento/
     migracoes.js           atualiza personagens salvos em versões antigas
     armazenamento.js       salvar e carregar (localStorage, conta do Claude ou conta Google)

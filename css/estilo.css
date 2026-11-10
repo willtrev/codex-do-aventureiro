@@ -779,6 +779,77 @@ tr.na td {
   padding: 28px 24px;
   gap: 14px;
 }
+.inicio-dados {
+  gap: 12px;
+  border: 1px solid var(--warn);
+  border-left: 6px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 8%, var(--surface));
+}
+.inicio-dados.nuvem {
+  border-color: var(--good);
+  background: color-mix(in srgb, var(--good) 8%, var(--surface));
+}
+.inicio-dados-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.inicio-dados-topo h2 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+.inicio-dados-selo {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--warn);
+}
+.inicio-dados.nuvem .inicio-dados-selo {
+  background: var(--good);
+}
+.inicio-dados-texto {
+  margin: 0;
+  max-width: 70ch;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.ex-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px;
+  max-height: 50vh;
+  overflow: auto;
+}
+.ex-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.ex-item:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.ex-item > span {
+  display: grid;
+}
+.ex-item input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
 .inicio-titulo {
   margin: 0;
   font-family: var(--display);

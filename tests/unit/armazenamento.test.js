@@ -46,7 +46,7 @@ test("campanha: adicionar, atualizar pelo nome e ordenar por iniciativa", () => 
   campanha().ordem = "iniciativa";
   assert.deepEqual(
     ordenados(campanha()).map((m) => m.c.nome),
-    ["Teste Monge", "Teste Bárbaro"]
+    ["Sora Punho-Calmo", "Grosh Quebra-Escudos"]
   );
 });
 

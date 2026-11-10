@@ -5,7 +5,7 @@ import { CAT } from "../dados/catalogo.js";
 import { classFeatures, cls } from "../regras/classes.js";
 import { blankChar, volis } from "../personagens/modelos.js";
 import { domList, syncDomainSpells } from "../regras/dominios.js";
-import { testChars } from "../personagens/testes.js";
+import { exemplos, htmlEscolherExemplos } from "../telas/inicio.js";
 import { AMMO, ammoFor, proibList, slotTable, spell } from "../regras/calculos.js";
 import { setStatus, state, touch } from "../armazenamento/armazenamento.js";
 import { applyTheme, setTheme, theme } from "./tema.js";
@@ -818,14 +818,29 @@ async function aoClicar(e) {
     case "impconfirmar":
       confirmarImportacao();
       break;
-    case "loadexamples": {
-      const v = volis(1);
-      for (const n of [v, ...testChars()]) {
+    case "loadexamples":
+      modal(htmlEscolherExemplos());
+      break;
+    case "exmarcar":
+      document.querySelectorAll('.modal input[name="exemplo"]').forEach((x) => (x.checked = b.dataset.v === "1"));
+      break;
+    case "exok": {
+      // Só os exemplos marcados; abre o primeiro deles
+      const marcados = new Set(
+        [...document.querySelectorAll('.modal input[name="exemplo"]:checked')].map((x) => x.value)
+      );
+      const escolhidos = exemplos().filter((x) => marcados.has(x.chave));
+      if (!escolhidos.length) {
+        document.getElementById("exmsg").textContent = "Marque pelo menos um personagem.";
+        break;
+      }
+      for (const { c: n } of escolhidos) {
         state.chars[n.id] = n;
         touch(n.id);
       }
-      state.active = v.id;
+      state.active = escolhidos[0].c.id;
       touch("__meta");
+      closeModal();
       irPara("painel");
       render();
       break;

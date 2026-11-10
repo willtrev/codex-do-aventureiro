@@ -1,12 +1,12 @@
 Volis E'gurar | Mago | PV 5 (sug 5) | CA 12/12/10 | BBA 0 | F1 R2 V3 | per 24/24 | slots [[0,3,1],[1,2,1]] | recursos  | armas Besta leve +2 1d8; Adaga -2 1d4 − 2; Adaga (arremessada) +2 1d4 − 2 | carga 10.00/10
-Teste Bárbaro | Bárbaro | PV 14 (sug 14) | CA 14/11/13 | BBA 1 | F4 R1 V0 | per 12/12 | slots [] | recursos Fúria:1 | armas Machado grande +5 1d12 + 6; Azagaia +2 1d6 + 4 | carga 28.00/50
-Teste Bardo | Bardo | PV 7 (sug 7) | CA 14/12/12 | BBA 0 | F1 R4 V1 | per 28/28 | slots [[0,2,0]] | recursos Música de bardo:1 | armas Rapieira +0 1d6; Arco curto +2 1d6 | carga 16.50/16.5
-Teste Clérigo | Clérigo | PV 11 (sug 11) | CA 15/9/15 | BBA 0 | F5 R-1 V5 | per 8/8 | slots [[0,3,0],[1,2,1]] | recursos Expulsar mortos-vivos:2,Escudo protetor (Proteção):1 | armas Maça pesada +1 1d8 + 1; Besta leve -1 1d8 | carga 30.50/25
-Teste Druida | Druida | PV 10 (sug 10) | CA 13/11/12 | BBA 0 | F4 R1 V5 | per 20/20 | slots [[0,3,0],[1,2,0]] | recursos  | armas Cimitarra +0 1d6; Funda +1 1d4 | carga 16.00/16.5
-Teste Guerreiro | Guerreiro | PV 13 (sug 13) | CA 17/11/16 | BBA 1 | F5 R1 V1 | per 4/4 | slots [] | recursos  | armas Machado de guerra anão +5 1d10 + 3; Besta leve +2 1d8 | carga 33.00/38
-Teste Monge | Monge | PV 9 (sug 9) | CA 14/14/12 | BBA 0 | F3 R4 V4 | per 20/20 | slots [] | recursos Ataque atordoante:1 | armas Ataque desarmado +1 1d6 + 1; Rajada de golpes (cada ataque) -1 1d6 + 1; Shuriken +2 1d2 + 1 | carga 6.75/25
-Teste Paladino | Paladino | PV 11 (sug 11) | CA 16/10/16 | BBA 1 | F3 R0 V1 | per 8/8 | slots [] | recursos Destruir o mal:1 | armas Espada longa +4 1d8 + 2; Besta leve +1 1d8 | carga 31.00/33
-Teste Ranger | Ranger | PV 9 (sug 9) | CA 16/13/13 | BBA 1 | F3 R5 V1 | per 24/24 | slots [] | recursos  | armas Arco longo +5 1d8 + 1; Espada longa +2 1d8 + 1; Espada curta +2 1d6 + 1 | carga 21.50/25
-Teste Ladino | Ladino | PV 7 (sug 7) | CA 18/15/14 | BBA 0 | F2 R7 V1 | per 40/40 | slots [] | recursos  | armas Espada curta +5 1d4 − 1; Besta leve +5 1d6 | carga 8.25/9.8
-Teste Feiticeiro | Feiticeiro | PV 6 (sug 6) | CA 12/12/10 | BBA 0 | F2 R2 V1 | per 12/12 | slots [[0,5,0],[1,4,0]] | recursos  | armas Besta leve +2 1d8; Adaga -1 1d4 − 1 | carga 8.00/13
-Teste Mago | Mago | PV 6 (sug 6) | CA 12/12/10 | BBA 0 | F2 R2 V2 | per 24/24 | slots [[0,3,0],[1,2,0]] | recursos  | armas Besta leve +2 1d8; Bordão -1 1d6 − 1 | carga 11.00/13
+Grosh Quebra-Escudos | Bárbaro | PV 14 (sug 14) | CA 14/11/13 | BBA 1 | F4 R1 V0 | per 12/12 | slots [] | recursos Fúria:1 | armas Machado grande +5 1d12 + 6; Azagaia +2 1d6 + 4 | carga 28.00/50
+Lírian Voz-de-Prata | Bardo | PV 7 (sug 7) | CA 14/12/12 | BBA 0 | F1 R4 V1 | per 28/28 | slots [[0,2,0]] | recursos Música de bardo:1 | armas Rapieira +0 1d6; Arco curto +2 1d6 | carga 16.50/16.5
+Durgan Pedrafiel | Clérigo | PV 11 (sug 11) | CA 15/9/15 | BBA 0 | F5 R-1 V5 | per 8/8 | slots [[0,3,0],[1,2,1]] | recursos Expulsar mortos-vivos:2,Escudo protetor (Proteção):1 | armas Maça pesada +1 1d8 + 1; Besta leve -1 1d8 | carga 30.50/25
+Iara Folhaverde | Druida | PV 10 (sug 10) | CA 13/11/12 | BBA 0 | F4 R1 V5 | per 20/20 | slots [[0,3,0],[1,2,0]] | recursos  | armas Cimitarra +0 1d6; Funda +1 1d4 | carga 16.00/16.5
+Thrain Barba-de-Bronze | Guerreiro | PV 13 (sug 13) | CA 17/11/16 | BBA 1 | F5 R1 V1 | per 4/4 | slots [] | recursos  | armas Machado de guerra anão +5 1d10 + 3; Besta leve +2 1d8 | carga 33.00/38
+Sora Punho-Calmo | Monge | PV 9 (sug 9) | CA 14/14/12 | BBA 0 | F3 R4 V4 | per 20/20 | slots [] | recursos Ataque atordoante:1 | armas Ataque desarmado +1 1d6 + 1; Rajada de golpes (cada ataque) -1 1d6 + 1; Shuriken +2 1d2 + 1 | carga 6.75/25
+Sir Aldric, o Justo | Paladino | PV 11 (sug 11) | CA 16/10/16 | BBA 1 | F3 R0 V1 | per 8/8 | slots [] | recursos Destruir o mal:1 | armas Espada longa +4 1d8 + 2; Besta leve +1 1d8 | carga 31.00/33
+Faelar Arcolongo | Ranger | PV 9 (sug 9) | CA 16/13/13 | BBA 1 | F3 R5 V1 | per 24/24 | slots [] | recursos  | armas Arco longo +5 1d8 + 1; Espada longa +2 1d8 + 1; Espada curta +2 1d6 + 1 | carga 21.50/25
+Pip Dedos-Leves | Ladino | PV 7 (sug 7) | CA 18/15/14 | BBA 0 | F2 R7 V1 | per 40/40 | slots [] | recursos  | armas Espada curta +5 1d4 − 1; Besta leve +5 1d6 | carga 8.25/9.8
+Kael Sangue-de-Dragão | Feiticeiro | PV 6 (sug 6) | CA 12/12/10 | BBA 0 | F2 R2 V1 | per 12/12 | slots [[0,5,0],[1,4,0]] | recursos  | armas Besta leve +2 1d8; Adaga -1 1d4 − 1 | carga 8.00/13
+Mirela Tinta-Arcana | Mago | PV 6 (sug 6) | CA 12/12/10 | BBA 0 | F2 R2 V2 | per 24/24 | slots [[0,3,0],[1,2,0]] | recursos  | armas Besta leve +2 1d8; Bordão -1 1d6 − 1 | carga 11.00/13

@@ -3,6 +3,21 @@ import { CAT } from "../dados/catalogo.js";
 import { CLASSES } from "../regras/classes.js";
 import { blankChar, spellFromCat } from "./modelos.js";
 
+/** Nome de cada personagem pronto, combinando com a raça e a classe. */
+export const NOMES_EXEMPLO = {
+  barbaro: "Grosh Quebra-Escudos", // meio-orc
+  bardo: "Lírian Voz-de-Prata", // meio-elfo
+  clerigo: "Durgan Pedrafiel", // anão
+  druida: "Iara Folhaverde", // humana
+  guerreiro: "Thrain Barba-de-Bronze", // anão
+  monge: "Sora Punho-Calmo", // humana
+  paladino: "Sir Aldric, o Justo", // humano
+  ranger: "Faelar Arcolongo", // elfo
+  ladino: "Pip Dedos-Leves", // halfling
+  feiticeiro: "Kael Sangue-de-Dragão", // humano
+  mago: "Mirela Tinta-Arcana", // humana
+};
+
 export function mkChar(k, o) {
   const c = blankChar();
   c.classeKey = k;
@@ -46,7 +61,7 @@ export function mkChar(k, o) {
       };
     }
   }
-  c.nome = "Teste " + CLASSES[k].nome;
+  c.nome = NOMES_EXEMPLO[k] || CLASSES[k].nome;
   c.testChar = true;
   return c;
 }
