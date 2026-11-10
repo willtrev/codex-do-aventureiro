@@ -7,6 +7,9 @@
      mesas/<CÓDIGO>/mapa/tokens/<id>     { nome, cor, x, y, dono, tipo, estado }
                                          o jogador grava só a própria peça (dono = uid dele)
                                          peça de personagem: id pj_<chave da ficha>, ficha = chave
+                                         peça de ficha do hub (sem jogador): id h_<mid>, tipo "ficha"
+     mesas/<CÓDIGO>/mapa/fora/<chave>    true: o mestre tirou essa peça de personagem do mapa
+                                         (não volta sozinha quando o jogador reabre o mapa)
      mesas/<CÓDIGO>/mapa/combate         { rodada, vez, ordem: [{ id, valor }] }   só o mestre
      privado/<CÓDIGO>/monstros/<id>      { pv, pvMax, ca, ini }               só o mestre lê e grava
 
@@ -138,6 +141,7 @@ export const mesaCombate = {
   combate: null,
   fichas: {}, // chave da ficha (<uid>_<id>) → resumo (para o estado das peças dos personagens)
   monstros: {}, // só o mestre: id → { pv, pvMax, ca, ini }
+  fora: {}, // chave da ficha → true: peça tirada do mapa pelo mestre
   status: "fora",
   erro: "",
 };
@@ -158,6 +162,7 @@ export async function entrarNoCombate(codigo, papel, avisos, personagem) {
     combate: null,
     fichas: {},
     monstros: {},
+    fora: {},
     status: "conectando",
     erro: "",
   });
@@ -165,7 +170,12 @@ export async function entrarNoCombate(codigo, papel, avisos, personagem) {
   mesaCombate.uid = b.uid;
   const base = `mesas/${codigo}/mapa`;
   const t = mesaCombate.tokens;
+  // Lido antes de tudo: a peça do jogador não deve ser recriada se o mestre a tirou
+  mesaCombate.fora = (await b.ler(`${base}/fora`)) || {};
   parar.push(
+    b.ouvir(`${base}/fora`, (v) => {
+      mesaCombate.fora = v || {};
+    }),
     b.ouvir(`${base}/config`, (v) => {
       mesaCombate.config = { ...MAPA_PADRAO, ...(v || {}) };
       avisos.config();
@@ -210,7 +220,7 @@ export function pararCombate() {
 async function garantirPeca(chave, nome) {
   const id = "pj_" + chave;
   const uid = uidDaFicha(chave);
-  if (mesaCombate.tokens[id]) return;
+  if (mesaCombate.tokens[id] || mesaCombate.fora[chave]) return;
   if (mesaCombate.papel === "jogador" && uid !== mesaCombate.uid) return;
   const b = await conectarBanco();
   const r = mesaCombate.fichas[chave];
@@ -247,6 +257,27 @@ export async function salvarFundo(dados) {
   const b = await conectarBanco();
   await b.gravar(caminho("fundo"), dados || null);
 }
+/**
+ * Mestre põe uma ficha da campanha no mapa. peca: { id, nome, cor, dono, tipo, ficha?, estado? }.
+ * Para personagem de jogador (ficha = chave), também libera a peça para voltar sozinha.
+ */
+export async function colocarNoMapa(peca) {
+  if (mesaCombate.tokens[peca.id]) return;
+  const b = await conectarBanco();
+  if (peca.ficha) await b.remover(caminho(`fora/${peca.ficha}`));
+  const dados = { ...peca, ...casaLivre(mesaCombate.tokens, mesaCombate.config) };
+  delete dados.id;
+  if (!dados.ficha) delete dados.ficha;
+  if (!dados.estado) delete dados.estado;
+  await b.criarSeNaoExiste(caminho(`tokens/${peca.id}`), dados);
+}
+/** Mestre tira uma ficha do mapa sem tirar o jogador da mesa. */
+export async function tirarDoMapa(id) {
+  const t = mesaCombate.tokens[id];
+  if (t && t.ficha) await (await conectarBanco()).gravar(caminho(`fora/${t.ficha}`), true);
+  await removerToken(id);
+}
+
 export async function adicionarMonstros({ nome, pv, ca, ini, quantidade = 1 }) {
   const b = await conectarBanco();
   for (let i = 1; i <= quantidade; i++) {

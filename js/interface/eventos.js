@@ -23,7 +23,7 @@ async function concluirEntrada(u, modo) {
   // O uid pode ter mudado: volta para a mesa com a identidade nova
   reconectar(cur(), true).then(atualizarSelo);
 }
-import { pecaATirar, setPapelPreferido, setPecaATirar } from "../telas/combate.js";
+import { colocarMembro, pecaATirar, setPapelPreferido, setPecaATirar, tirarMembro } from "../telas/combate.js";
 import {
   adicionarMonstros,
   encerrarCombate,
@@ -606,6 +606,12 @@ async function aoClicar(e) {
     }
     case "cbremover":
       await removerToken(b.dataset.id);
+      break;
+    case "cbfichain":
+      await colocarMembro(b.dataset.m);
+      break;
+    case "cbfichaout":
+      await tirarMembro(b.dataset.m);
       break;
     case "cbtirar": {
       // Personagem de jogador: sai da mesa (ficha, peça e conexão do jogador)

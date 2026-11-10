@@ -1,4 +1,4 @@
-import { test, expect, carregarExemplos } from "./ajuda.js";
+import { test, expect, carregarExemplos, expor } from "./ajuda.js";
 
 /* Mapa de combate com o banco simulado: mestre e jogador em duas abas. */
 
@@ -155,4 +155,55 @@ test("lista de peças embaixo do mapa: o mestre remove monstros e tira personage
   await expect(pecas).toHaveCount(1);
   await expect(mestre.locator('.tk[id^="tk_pj_"]')).toHaveCount(0);
   await expect(jogador.locator("#mesaselo")).toContainText("O mestre tirou Volis E'gurar da mesa");
+});
+
+test("fichas importadas no hub: o mestre põe e tira do mapa", async ({ page: mestre, context }) => {
+  const jogador = await prepararMesa(mestre, context);
+  // Duas fichas importadas no hub (sem jogador na mesa)
+  await mestre.evaluate(() => (location.hash = "mestre"));
+  await expor(mestre);
+  const backups = await mestre.evaluate(() =>
+    testChars()
+      .slice(0, 2)
+      .map((c) => ({ nome: c.nome, json: JSON.stringify(c) }))
+  );
+  for (const b of backups) {
+    await mestre.getByRole("button", { name: "Colar backup" }).click();
+    await mestre.fill("#mbk", b.json);
+    await mestre.getByRole("button", { name: "Adicionar à campanha" }).click();
+    await mestre.locator('.modal [data-a="close"]').first().click();
+  }
+  await mestre.getByRole("button", { name: "Abrir mapa de combate" }).click();
+  await expect(mestre.locator("#cb_svg")).toBeVisible();
+
+  const fichas = mestre.locator("#cb_fichas li");
+  await expect(fichas).toHaveCount(3); // o jogador da mesa + as duas do hub
+  const primeira = fichas.filter({ hasText: backups[0].nome });
+  await expect(primeira).toContainText("Ficha do hub · fora do mapa");
+  await expect(fichas.filter({ hasText: "Volis E'gurar" })).toContainText("Jogador na mesa · no mapa");
+
+  // Colocar: aparece no mapa dos dois e na lista de peças
+  await primeira.getByRole("button", { name: /Colocar .* no mapa/ }).click();
+  await expect(primeira).toContainText("no mapa");
+  await expect(mestre.locator('.tk[id^="tk_h_"]')).toHaveCount(1);
+  await expect(jogador.locator('.tk[id^="tk_h_"]')).toHaveCount(1);
+  await expect(mestre.locator("#cb_pecas")).toContainText("Ficha do hub");
+
+  // Tirar: some do mapa
+  await primeira.getByRole("button", { name: /Tirar .* do mapa/ }).click();
+  await expect(mestre.locator('.tk[id^="tk_h_"]')).toHaveCount(0);
+  await expect(jogador.locator('.tk[id^="tk_h_"]')).toHaveCount(0);
+
+  // Personagem do jogador: tirar do mapa não desconecta e a peça não volta ao reabrir o mapa
+  const volis = fichas.filter({ hasText: "Volis E'gurar" });
+  await volis.getByRole("button", { name: /Tirar .* do mapa/ }).click();
+  await expect(jogador.locator(".tk.meu")).toHaveCount(0);
+  await expect(jogador.locator("#mesaselo, #top")).not.toContainText("O mestre tirou");
+  await jogador.reload();
+  await expect(jogador.locator("#cb_svg")).toBeVisible();
+  await jogador.waitForTimeout(500);
+  await expect(jogador.locator(".tk.meu")).toHaveCount(0);
+  // E o mestre põe de volta
+  await volis.getByRole("button", { name: /Colocar .* no mapa/ }).click();
+  await expect(jogador.locator(".tk.meu")).toHaveCount(1);
 });

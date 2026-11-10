@@ -6,13 +6,17 @@
    (uma peça, a lista de iniciativa, a lista de monstros). Durante o arrasto a peça é
    movida direto no SVG e a posição só vai para o banco ao soltar. */
 import { seloConta } from "./conta.js";
-import { esc, sg } from "../util.js";
+import { esc, sg, uidDaFicha } from "../util.js";
 import { cur } from "../interface/estado.js";
 import { theme } from "../interface/tema.js";
-import { statusHTML } from "../armazenamento/armazenamento.js";
+import { state, statusHTML } from "../armazenamento/armazenamento.js";
+import { resumoAoVivo } from "../tempo-real/resumo.js";
 import { campanha } from "./mestre.js";
 import {
   TAM_CASA as T,
+  colocarNoMapa,
+  corDoJogador,
+  tirarDoMapa,
   incluirNaOrdem,
   encaixar,
   entrarNoCombate,
@@ -162,6 +166,65 @@ function listaMonstros() {
     })
     .join("")}</ul>`;
 }
+/* ---------- Fichas da campanha: pôr e tirar do mapa (só o mestre) ---------- */
+
+/** Campanha do hub ligada a esta mesa. */
+const campanhaDaMesa = () =>
+  Object.values(state.campanhas || {}).find((g) => g.mesa && g.mesa.codigo === mesaCombate.codigo) || null;
+/**
+ * Peça de um membro da campanha. Quem entrou pela mesa (e continua nela) usa a peça do
+ * jogador (pj_<chave>, o jogador move); ficha importada no hub usa h_<mid> (só o mestre move).
+ */
+function pecaDoMembro(m) {
+  if (m.uid && m.origem === "mesa" && mesaCombate.fichas[m.uid])
+    return {
+      id: "pj_" + m.uid,
+      nome: m.c.nome,
+      cor: corDoJogador(m.uid),
+      dono: uidDaFicha(m.uid),
+      ficha: m.uid,
+      tipo: "pj",
+    };
+  const hp = resumoAoVivo(m.c).hp;
+  return {
+    id: "h_" + m.mid,
+    nome: m.c.nome,
+    cor: corDoJogador(m.mid),
+    dono: "mestre",
+    tipo: "ficha",
+    estado: estadoPorPV(+hp.atual, +hp.max || 1),
+  };
+}
+function listaFichasCampanha() {
+  const g = campanhaDaMesa();
+  if (!g)
+    return `<p class="small muted" style="margin:0">Esta mesa não está ligada a uma campanha deste navegador.</p>`;
+  if (!g.membros.length) return `<p class="small muted" style="margin:0">A campanha ainda não tem fichas.</p>`;
+  return `<ul class="cb-pecas">${g.membros
+    .map((m) => {
+      const p = pecaDoMembro(m);
+      const noMapa = !!mesaCombate.tokens[p.id];
+      const origem = p.tipo === "pj" ? "Jogador na mesa" : "Ficha do hub";
+      const botao = noMapa
+        ? `<button class="btn sm ghost" data-a="cbfichaout" data-m="${m.mid}" aria-label="Tirar ${esc(m.c.nome)} do mapa">Tirar do mapa</button>`
+        : `<button class="btn sm pri" data-a="cbfichain" data-m="${m.mid}" aria-label="Colocar ${esc(m.c.nome)} no mapa">Colocar no mapa</button>`;
+      return `<li class="cb-item"><span class="cb-cor" style="background:${esc(p.cor)}"></span>
+        <span class="cb-peca"><b>${esc(m.c.nome)}</b><span class="small muted">${origem} · ${noMapa ? "no mapa" : "fora do mapa"}</span></span>${botao}</li>`;
+    })
+    .join("")}</ul>`;
+}
+/** Botões "Colocar no mapa" e "Tirar do mapa" da lista de fichas da campanha. */
+export async function colocarMembro(mid) {
+  const g = campanhaDaMesa();
+  const m = g && g.membros.find((x) => x.mid === mid);
+  if (m) await colocarNoMapa(pecaDoMembro(m));
+}
+export async function tirarMembro(mid) {
+  const g = campanhaDaMesa();
+  const m = g && g.membros.find((x) => x.mid === mid);
+  if (m) await tirarDoMapa(pecaDoMembro(m).id);
+}
+
 /* Lista de peças embaixo do mapa (só o mestre): tudo que está no mapa, com o botão de tirar */
 export let pecaATirar = null;
 export const setPecaATirar = (v) => (pecaATirar = v);
@@ -177,7 +240,8 @@ function listaPecas() {
   const pecas = Object.entries(mesaCombate.tokens)
     .filter(([, t]) => t && t.nome)
     .sort(
-      ([, a], [, b]) => (a.tipo === "pj" ? 0 : 1) - (b.tipo === "pj" ? 0 : 1) || String(a.nome).localeCompare(b.nome)
+      ([, a], [, b]) =>
+        (a.tipo === "monstro" ? 1 : 0) - (b.tipo === "monstro" ? 1 : 0) || String(a.nome).localeCompare(b.nome)
     );
   if (!pecas.length) return `<p class="small muted" style="margin:0">Nenhuma peça no mapa.</p>`;
   return `<ul class="cb-pecas">${pecas
@@ -185,7 +249,13 @@ function listaPecas() {
       const pj = t.tipo === "pj";
       // Peça de personagem cuja ficha já saiu da mesa (sobrou de antes): só tira do mapa
       const naMesa = pj && t.ficha && mesaCombate.fichas[t.ficha];
-      const tipo = pj ? (naMesa ? "Personagem de jogador" : "Personagem (fora da mesa)") : "Monstro / NPC";
+      const tipo = pj
+        ? naMesa
+          ? "Personagem de jogador"
+          : "Personagem (fora da mesa)"
+        : t.tipo === "ficha"
+          ? "Ficha do hub"
+          : "Monstro / NPC";
       const botao = naMesa
         ? `<button class="btn sm ghost" data-a="cbtirar" data-id="${id}" aria-label="Tirar ${esc(t.nome)} da mesa">Tirar da mesa</button>`
         : `<button class="btn sm ghost" data-a="cbremover" data-id="${id}" aria-label="Remover ${esc(t.nome)} do mapa">Remover</button>`;
@@ -256,7 +326,12 @@ export function vCombate() {
     <div class="cb-esq">
     <section class="card cb-mapa"><div class="cb-rolagem" id="cb_area">${carregando ? `<p class="muted">Carregando o mapa…</p>` : mapaSVG()}</div>
       <p class="small muted" style="margin:0">${mestre ? "Arraste qualquer peça." : "Arraste a sua peça (contorno destacado). Com ela selecionada, as setas do teclado também movem."}</p></section>
-    ${mestre ? `<section class="card"><h2>Peças no mapa</h2><div id="cb_pecas">${carregando ? "" : listaPecas()}</div></section>` : ""}
+    ${
+      mestre
+        ? `<section class="card"><h2>Fichas da campanha</h2><div id="cb_fichas">${carregando ? "" : listaFichasCampanha()}</div></section>
+           <section class="card"><h2>Peças no mapa</h2><div id="cb_pecas">${carregando ? "" : listaPecas()}</div></section>`
+        : ""
+    }
     </div>
     <aside class="cb-lado">
       <section class="card" id="cb_ordem">${painelOrdem()}</section>
@@ -310,6 +385,8 @@ function atualizarOrdem() {
 function atualizarPecas() {
   const el = $("cb_pecas");
   if (el) el.innerHTML = listaPecas();
+  const f = $("cb_fichas");
+  if (f) f.innerHTML = listaFichasCampanha();
 }
 function atualizarTodosTokens() {
   Object.keys(mesaCombate.tokens).forEach(atualizarToken);
