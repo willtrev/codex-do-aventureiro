@@ -207,3 +207,20 @@ test("fichas importadas no hub: o mestre põe e tira do mapa", async ({ page: me
   await volis.getByRole("button", { name: /Colocar .* no mapa/ }).click();
   await expect(jogador.locator(".tk.meu")).toHaveCount(1);
 });
+
+test("o mestre vê os PV dos jogadores no mapa; o jogador não", async ({ page: mestre, context }) => {
+  const jogador = await prepararMesa(mestre, context);
+  const pecaNoMestre = mestre.locator('.tk[id^="tk_pj_"]');
+  await expect(pecaNoMestre.locator(".tk-pvtxt")).toHaveText("5/5");
+  await expect(pecaNoMestre.locator(".tk-pv")).toHaveCount(1);
+  // O jogador vê só o estado, sem números
+  await expect(jogador.locator(".tk.meu .tk-nome")).toHaveText("Volis E'gurar");
+  await expect(jogador.locator(".tk.meu .tk-placa")).toHaveCount(0);
+
+  // Dano na ficha do jogador: o mapa do mestre atualiza na hora
+  await jogador.evaluate(() => (location.hash = "painel"));
+  await jogador.fill("#hpamt", "3");
+  await jogador.locator('[data-a="dmg"]').click();
+  await expect(pecaNoMestre.locator(".tk-pvtxt")).toHaveText("2/5");
+  await expect(pecaNoMestre.locator(".tk-pv")).toHaveClass(/grave/);
+});

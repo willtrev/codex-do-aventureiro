@@ -1044,6 +1044,32 @@ tr.na td {
   stroke-width: 3px;
   pointer-events: none;
 }
+/* PV na peça (só o mestre vê) */
+.tk-pv-fundo {
+  fill: #000;
+  fill-opacity: 0.6;
+}
+.tk-pv {
+  fill: var(--good);
+}
+.tk-pv.ferido {
+  fill: var(--warn);
+}
+.tk-pv.grave {
+  fill: var(--bad);
+}
+.tk-pv-fundo {
+  stroke: #fff;
+  stroke-width: 1;
+}
+.tk-pvtxt {
+  fill: #fff;
+  font: 700 9px system-ui;
+  paint-order: stroke;
+  stroke: #000;
+  stroke-width: 2px;
+  pointer-events: none;
+}
 .tk-vez {
   fill: none;
   stroke: var(--warn);

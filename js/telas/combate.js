@@ -63,12 +63,41 @@ const ESTADO_CLASSE = {
   morrendo: "tk-caido",
   morto: "tk-caido",
 };
-export function estadoDoToken(id, t) {
+/**
+ * PV de uma peça de personagem: { atual, max, temp }, ou null. Peça de jogador na mesa usa a
+ * ficha ao vivo; peça de ficha do hub usa a ficha da campanha (só o mestre tem a campanha).
+ */
+export function pvDoToken(id, t) {
+  let hp = null;
   if (t.tipo === "pj") {
     const r = mesaCombate.fichas[t.ficha || t.dono];
-    return r && r.hp ? estadoPorPV(+r.hp.atual, +r.hp.max || 1) : "ileso";
+    hp = r && r.hp;
+  } else if (t.tipo === "ficha") {
+    const g = campanhaDaMesa();
+    const m = g && g.membros.find((x) => "h_" + x.mid === id);
+    hp = m && resumoAoVivo(m.c).hp;
   }
-  return t.estado || "ileso";
+  return hp ? { atual: +hp.atual || 0, max: +hp.max || 1, temp: +hp.temp || 0 } : null;
+}
+export function estadoDoToken(id, t) {
+  const pv = pvDoToken(id, t);
+  if (pv) return estadoPorPV(pv.atual, pv.max);
+  return t.tipo === "pj" ? "ileso" : t.estado || "ileso";
+}
+/** Placa de PV na base da peça de personagem, com barra e números (só o mestre vê). */
+function pvNaPeca(id, t, est) {
+  if (mesaCombate.papel !== "mestre") return { placa: "", titulo: "" };
+  const pv = pvDoToken(id, t);
+  if (!pv) return { placa: "", titulo: "" };
+  const largura = T - 6;
+  const cheio = Math.max(0, Math.min(1, pv.atual / pv.max));
+  const cor = est === "ileso" ? "ok" : est === "ferido" ? "ferido" : "grave";
+  return {
+    placa: `<g class="tk-placa"><rect x="3" y="${T - 14}" width="${largura}" height="12" rx="3" class="tk-pv-fundo"/>
+      <rect x="3" y="${T - 14}" width="${(largura * cheio).toFixed(1)}" height="12" rx="3" class="tk-pv ${cor}"/>
+      <text x="${T / 2}" y="${T - 5}" text-anchor="middle" class="tk-pvtxt">${pv.atual}/${pv.max}</text></g>`,
+    titulo: ` · PV ${pv.atual}/${pv.max}${pv.temp ? ` (+${pv.temp} temporários)` : ""}`,
+  };
 }
 function dentroDoToken(id, t) {
   const est = estadoDoToken(id, t);
@@ -80,11 +109,13 @@ function dentroDoToken(id, t) {
       : ESTADO_CLASSE[est] === "tk-caido"
         ? `<path d="M12 12 L${T - 12} ${T - 12} M${T - 12} 12 L12 ${T - 12}" class="tk-x"/>`
         : "";
-  return `<title>${esc(t.nome)}: ${esc(est)}</title>
+  const pv = pvNaPeca(id, t, est);
+  return `<title>${esc(t.nome)}: ${esc(est)}${esc(pv.titulo)}</title>
     ${vez ? `<circle cx="${meio}" cy="${meio}" r="${meio - 1}" class="tk-vez"/>` : ""}
     <circle cx="${meio}" cy="${meio}" r="${meio - 6}" fill="${esc(t.cor || "#666")}" class="tk-corpo"/>
     <text x="${meio}" y="${meio + 5}" text-anchor="middle" class="tk-ini">${esc(iniciais(t.nome))}</text>
     ${marca}
+    ${pv.placa}
     <text x="${meio}" y="${T + 11}" text-anchor="middle" class="tk-nome">${esc(t.nome)}</text>`;
 }
 function classesDoToken(id, t) {
