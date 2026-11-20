@@ -11,6 +11,7 @@
         "membros": {
           ".read": "auth != null && data.child(auth.uid).exists()",
           "$uid": {
+            ".read": "auth != null && $uid === auth.uid",
             ".write": "auth != null && root.child('mesas').child($codigo).child('info').exists() && ($uid === auth.uid || root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid)",
             "papel": {
               ".validate": "newData.val() === 'jogador' || root.child('mesas').child($codigo).child('info/mestre').val() === auth.uid"

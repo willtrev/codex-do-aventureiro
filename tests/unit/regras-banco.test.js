@@ -33,3 +33,12 @@ test("personagem removido pelo mestre não grava a ficha; o próprio jogador pod
 test("jogador pode apagar uma peça que já não existe (sair da mesa sem peça no mapa)", () => {
   assert.match(mesa.mapa.tokens.$id[".write"], /!data\.exists\(\) && \(!newData\.exists\(\)/);
 });
+
+test("quem ainda não é membro pode ler o próprio registro em membros (para entrar na mesa)", () => {
+  // entrarNaMesa lê membros/<uid> antes de gravar, para não rebaixar o mestre
+  assert.equal(mesa.membros.$uid[".read"], "auth != null && $uid === auth.uid");
+  assert.match(
+    readFileSync(new URL("../../js/tempo-real/mesa.js", import.meta.url), "utf8"),
+    /b\.ler\(`\$\{base\}\/membros\/\$\{b\.uid\}`\)/
+  );
+});
