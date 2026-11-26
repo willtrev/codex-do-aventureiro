@@ -1044,6 +1044,38 @@ tr.na td {
   stroke-width: 3px;
   pointer-events: none;
 }
+/* Monstro escondido dos jogadores (só o mestre vê a peça) */
+.tk-escondido > :not(.tk-olho):not(title) {
+  opacity: 0.45;
+}
+.tk-olho circle:first-child {
+  fill: var(--ink);
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+.tk-olho path {
+  fill: none;
+  stroke: var(--surface);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.tk-olho .tk-olho-pupila {
+  fill: var(--surface);
+}
+.cb-monstro.escondido b {
+  opacity: 0.7;
+}
+.cb-sel {
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.cb-sel label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+}
 /* PV na peça (só o mestre vê) */
 .tk-pv-fundo {
   fill: #000;
@@ -1145,11 +1177,26 @@ tr.na td {
   white-space: nowrap;
 }
 .cb-monstro {
+  display: grid;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.cb-monstro-topo {
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+.cb-monstro-topo input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.cb-monstro-acoes {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--line);
+  padding-left: 26px;
 }
 .cb-form {
   grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));

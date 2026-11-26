@@ -1,21 +1,37 @@
 # Funcionalidades futuras
 
-Ideias para depois. Nada aqui está desenvolvido ainda.
+Ideias para depois. O que já foi feito fica marcado, com o que foi decidido.
 
 ## Mapa de combate
 
-### [ ] Monstros escondidos dos jogadores
+### [ ] Marcar áreas no mapa
 
-Monstros recém-adicionados ao mapa entram **invisíveis para os jogadores**. O mestre decide quando eles aparecem.
+O mestre (e talvez os jogadores) marca áreas no campo de batalha, para mostrar onde uma magia pega ou onde fica um efeito que continua em jogo.
 
-- [ ] Todo monstro novo entra escondido por padrão.
-- [ ] No mapa do mestre, o monstro escondido aparece **meio transparente** e com um **símbolo** marcando (por exemplo, um olho riscado no canto da peça).
-- [ ] Os jogadores não veem a peça escondida no mapa, nem na ordem de iniciativa, nem a quantidade de monstros.
-- [ ] O mestre pode **selecionar um ou vários monstros** e deixá-los visíveis quando quiser (e escondê-los de novo).
-- [ ] Na lista "Monstros e NPCs" e em "Peças no mapa", cada monstro mostra se está visível ou escondido, com o botão para trocar.
+- [ ] **Área de efeito instantâneo:** por exemplo, "a Bola de Fogo pega aqui". Coloca um círculo (ou outra forma) num ponto do mapa para todos verem quem está dentro.
+- [ ] **Efeito contínuo:** por exemplo, Graxa. A área fica marcada no mapa até alguém tirar.
+- [ ] Formas: círculo (raio), quadrado, cone e linha, medidos em metros pela grade (1 casa = 1,5 m).
+- [ ] Cada área com nome ("Graxa", "Bola de Fogo"), cor e transparência, para ver as peças embaixo.
+- [ ] Mover e redimensionar a área arrastando, e apagar quando acabar.
 
 Pontos para decidir na hora de fazer:
 
-- O monstro escondido entra na ordem de iniciativa do mestre? (Sugestão: sim, mas só o mestre vê; quando aparece, os jogadores passam a vê-lo na ordem.)
-- Como selecionar vários: caixas de marcar na lista ou clique com Ctrl/Shift no mapa.
-- Segurança: hoje os jogadores leem `mapa/tokens` inteiro. Para esconder de verdade (e não só na tela), os monstros escondidos precisam ficar num caminho que só o mestre lê (por exemplo `privado/<código>/escondidos`), e passar para `mapa/tokens` quando ficarem visíveis. Isso pede mudança em `database.rules.json`.
+- Quem pode marcar: só o mestre ou também os jogadores (por exemplo, o mago marca a própria Bola de Fogo).
+- Área instantânea some sozinha depois de um tempo ou no fim do turno, ou só quando alguém apaga.
+- Mostrar quais peças ficam dentro da área (destacar as peças atingidas).
+- Onde gravar: `mesas/<código>/mapa/areas`, com regra nova em `database.rules.json`.
+
+### [x] Monstros escondidos dos jogadores
+
+Feito. Monstros novos entram escondidos por padrão (caixa "Entrar escondido dos jogadores" em "Monstros e NPCs").
+
+- [x] No mapa do mestre, o monstro escondido aparece meio transparente e com um olho riscado no canto.
+- [x] Os jogadores não veem a peça escondida no mapa nem na ordem de iniciativa.
+- [x] O mestre mostra ou esconde um monstro pelo botão dele, ou vários de uma vez marcando as caixas ("Mostrar marcados", "Esconder marcados", "Marcar todos").
+- [x] "Monstros e NPCs" e "Peças no mapa" mostram se cada monstro está escondido ou visível.
+
+O que foi decidido:
+
+- O monstro escondido entra na ordem de iniciativa, mas só o mestre o vê. Quando aparece, os jogadores passam a vê-lo na ordem.
+- Seleção de vários pelas caixas de marcar na lista.
+- Escondido de verdade, não só na tela: a peça escondida fica em `privado/<código>/escondidos`, que só o mestre lê, e passa para `mapa/tokens` quando aparece. As regras de `privado` já cobriam isso, então `database.rules.json` não mudou.

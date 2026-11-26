@@ -110,17 +110,22 @@ function dentroDoToken(id, t) {
         ? `<path d="M12 12 L${T - 12} ${T - 12} M${T - 12} 12 L12 ${T - 12}" class="tk-x"/>`
         : "";
   const pv = pvNaPeca(id, t, est);
-  return `<title>${esc(t.nome)}: ${esc(est)}${esc(pv.titulo)}</title>
+  // Monstro escondido (só o mestre vê a peça): olho riscado no canto
+  const olho = t.escondido
+    ? `<g class="tk-olho"><circle cx="9" cy="9" r="8.5"/><path d="M3.5 9 Q9 3.5 14.5 9 Q9 14.5 3.5 9 Z"/><circle cx="9" cy="9" r="1.8" class="tk-olho-pupila"/><path d="M3.5 14.5 L14.5 3.5"/></g>`
+    : "";
+  return `<title>${esc(t.nome)}: ${esc(est)}${esc(pv.titulo)}${t.escondido ? " · escondido dos jogadores" : ""}</title>
     ${vez ? `<circle cx="${meio}" cy="${meio}" r="${meio - 1}" class="tk-vez"/>` : ""}
     <circle cx="${meio}" cy="${meio}" r="${meio - 6}" fill="${esc(t.cor || "#666")}" class="tk-corpo"/>
     <text x="${meio}" y="${meio + 5}" text-anchor="middle" class="tk-ini">${esc(iniciais(t.nome))}</text>
     ${marca}
     ${pv.placa}
+    ${olho}
     <text x="${meio}" y="${T + 11}" text-anchor="middle" class="tk-nome">${esc(t.nome)}</text>`;
 }
 function classesDoToken(id, t) {
   const est = estadoDoToken(id, t);
-  return `tk ${podeMover(t) ? "movel" : ""} ${ESTADO_CLASSE[est] || ""} ${t.dono === mesaCombate.uid ? "meu" : ""}`;
+  return `tk ${podeMover(t) ? "movel" : ""} ${ESTADO_CLASSE[est] || ""} ${t.dono === mesaCombate.uid ? "meu" : ""} ${t.escondido ? "tk-escondido" : ""}`;
 }
 function tokenSVG(id, t) {
   return `<g class="${classesDoToken(id, t)}" id="tk_${id}" data-id="${id}" tabindex="${podeMover(t) ? 0 : -1}" role="img" aria-label="${esc(t.nome)}" style="transform:translate(${t.x * T}px,${t.y * T}px)">${dentroDoToken(id, t)}</g>`;
@@ -183,19 +188,41 @@ function painelOrdem() {
         : ""
     }`;
 }
+/** Monstros marcados na lista, para mostrar ou esconder vários de uma vez. */
+export const monstrosMarcados = new Set();
 function listaMonstros() {
   const ms = Object.entries(mesaCombate.tokens).filter(([, t]) => t.tipo === "monstro" && t.nome);
+  for (const id of [...monstrosMarcados]) if (!mesaCombate.tokens[id]) monstrosMarcados.delete(id);
   if (!ms.length) return `<p class="small muted" style="margin:0">Nenhum monstro no mapa.</p>`;
-  return `<ul class="cb-monstros">${ms
-    .map(([id, t]) => {
-      const m = mesaCombate.monstros[id] || {};
-      return `<li class="cb-monstro"><div style="flex:1;min-width:0"><b>${esc(t.nome)}</b>
-        <div class="small muted">PV ${m.pv ?? "?"}/${m.pvMax ?? "?"} · CA ${m.ca ?? "?"} · ${esc(t.estado || "ileso")}</div></div>
-        <button class="btn sm" data-a="cbdano" data-id="${id}" aria-label="Dano em ${esc(t.nome)}">Dano</button>
-        <button class="btn sm" data-a="cbcura" data-id="${id}" aria-label="Curar ${esc(t.nome)}">Cura</button>
-        <button class="btn sm ghost" data-a="cbremover" data-id="${id}" aria-label="Remover ${esc(t.nome)}">✕</button></li>`;
-    })
-    .join("")}</ul>`;
+  const escondidos = ms.filter(([, t]) => t.escondido).length;
+  const todos = ms.every(([id]) => monstrosMarcados.has(id));
+  return `<div class="row cb-sel">
+      <label class="small"><input type="checkbox" data-a="cbseltodos" ${todos ? "checked" : ""}> Marcar todos</label>
+      <button class="btn sm" data-a="cbvissel" data-v="1" ${monstrosMarcados.size ? "" : "disabled"}>Mostrar marcados</button>
+      <button class="btn sm" data-a="cbvissel" data-v="0" ${monstrosMarcados.size ? "" : "disabled"}>Esconder marcados</button>
+    </div>
+    <p class="small muted" style="margin:0">${escondidos ? `${escondidos} de ${ms.length} escondido(s) dos jogadores.` : "Todos visíveis para os jogadores."}</p>
+    <ul class="cb-monstros">${ms
+      .map(([id, t]) => {
+        const m = mesaCombate.monstros[id] || {};
+        return `<li class="cb-monstro ${t.escondido ? "escondido" : ""}">
+        <div class="cb-monstro-topo">
+          <input type="checkbox" data-a="cbsel" data-id="${id}" ${monstrosMarcados.has(id) ? "checked" : ""} aria-label="Marcar ${esc(t.nome)}">
+          <div style="flex:1;min-width:0"><b>${esc(t.nome)}</b>
+            <div class="small muted">PV ${m.pv ?? "?"}/${m.pvMax ?? "?"} · CA ${m.ca ?? "?"} · ${esc(t.estado || "ileso")} · ${t.escondido ? "<b>escondido</b>" : "visível"}</div></div>
+          <button class="btn sm ghost" data-a="cbremover" data-id="${id}" aria-label="Remover ${esc(t.nome)}">✕</button>
+        </div>
+        <div class="cb-monstro-acoes">
+          <button class="btn sm" data-a="cbvis" data-id="${id}" data-v="${t.escondido ? 1 : 0}" aria-label="${t.escondido ? "Mostrar" : "Esconder"} ${esc(t.nome)}">${t.escondido ? "Mostrar" : "Esconder"}</button>
+          <button class="btn sm" data-a="cbdano" data-id="${id}" aria-label="Dano em ${esc(t.nome)}">Dano</button>
+          <button class="btn sm" data-a="cbcura" data-id="${id}" aria-label="Curar ${esc(t.nome)}">Cura</button>
+        </div></li>`;
+      })
+      .join("")}</ul>`;
+}
+export function atualizarListaMonstros() {
+  const l = $("cb_lista");
+  if (l) l.innerHTML = listaMonstros();
 }
 /* ---------- Fichas da campanha: pôr e tirar do mapa (só o mestre) ---------- */
 
@@ -280,13 +307,15 @@ function listaPecas() {
       const pj = t.tipo === "pj";
       // Peça de personagem cuja ficha já saiu da mesa (sobrou de antes): só tira do mapa
       const naMesa = pj && t.ficha && mesaCombate.fichas[t.ficha];
-      const tipo = pj
-        ? naMesa
-          ? "Personagem de jogador"
-          : "Personagem (fora da mesa)"
-        : t.tipo === "ficha"
-          ? "Ficha do hub"
-          : "Monstro / NPC";
+      const tipo =
+        (t.escondido ? "Escondido · " : "") +
+        (pj
+          ? naMesa
+            ? "Personagem de jogador"
+            : "Personagem (fora da mesa)"
+          : t.tipo === "ficha"
+            ? "Ficha do hub"
+            : "Monstro / NPC");
       const botao = naMesa
         ? `<button class="btn sm ghost" data-a="cbtirar" data-id="${id}" aria-label="Tirar ${esc(t.nome)} da mesa">Tirar da mesa</button>`
         : `<button class="btn sm ghost" data-a="cbremover" data-id="${id}" aria-label="Remover ${esc(t.nome)} do mapa">Remover</button>`;
@@ -298,13 +327,14 @@ function listaPecas() {
 
 function painelMonstros() {
   return `<h2>Monstros e NPCs</h2>
-    <p class="small muted" style="margin:0">Os jogadores veem só o estado (ileso, ferido, muito ferido, caído).</p>
+    <p class="small muted" style="margin:0">Os jogadores veem só o estado (ileso, ferido, muito ferido, caído). Monstros escondidos (meio transparentes, com o olho riscado) só você vê.</p>
     <div class="fields cb-form">
       <label class="f" for="cbm_nome">Nome<input id="cbm_nome" type="text" placeholder="ex.: Goblin"></label>
       <label class="f" for="cbm_pv">PV<input id="cbm_pv" type="number" min="1" value="6"></label>
       <label class="f" for="cbm_ca">CA<input id="cbm_ca" type="number" value="15"></label>
       <label class="f" for="cbm_qtd">Qtd.<input id="cbm_qtd" type="number" min="1" max="20" value="1"></label>
     </div>
+    <label class="small"><input id="cbm_esc" type="checkbox" checked> Entrar escondido dos jogadores</label>
     <div class="row"><button class="btn pri" data-a="cbaddmonstro">Adicionar ao mapa</button><span id="cbm_msg" class="small" style="color:var(--bad)" role="status"></span></div>
     <div class="row"><label for="cbm_valor" class="small muted">Valor de dano ou cura</label><input id="cbm_valor" type="number" min="0" value="1" style="width:72px"></div>
     <div id="cb_lista">${listaMonstros()}</div>`;

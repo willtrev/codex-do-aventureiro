@@ -35,6 +35,7 @@ test("jogador move a própria peça e o mestre vê na hora; peça do monstro nã
 }) => {
   const jogador = await prepararMesa(mestre, context);
   await mestre.fill("#cbm_nome", "Goblin");
+  await mestre.uncheck("#cbm_esc"); // visível para os jogadores desde já
   await mestre.getByRole("button", { name: "Adicionar ao mapa" }).click();
   await expect(jogador.locator(".tk")).toHaveCount(2);
 
@@ -55,6 +56,7 @@ test("PV do monstro ficam com o mestre; o jogador vê só o estado", async ({ pa
   const jogador = await prepararMesa(mestre, context);
   await mestre.fill("#cbm_nome", "Ogro");
   await mestre.fill("#cbm_pv", "10");
+  await mestre.uncheck("#cbm_esc"); // visível para os jogadores desde já
   await mestre.getByRole("button", { name: "Adicionar ao mapa" }).click();
   await mestre.fill("#cbm_valor", "6");
   await mestre.getByRole("button", { name: "Dano em Ogro" }).click();
@@ -67,6 +69,7 @@ test("PV do monstro ficam com o mestre; o jogador vê só o estado", async ({ pa
 test("iniciativa: todos entram na lista e o mestre define a ordem", async ({ page: mestre, context }) => {
   const jogador = await prepararMesa(mestre, context);
   await mestre.fill("#cbm_nome", "Goblin");
+  await mestre.uncheck("#cbm_esc"); // visível para os jogadores desde já
   await mestre.getByRole("button", { name: "Adicionar ao mapa" }).click();
   await mestre.getByRole("button", { name: "Começar combate" }).click();
   const nomes = (p) => p.locator("#cb_ordem .cb-nome");
@@ -87,6 +90,7 @@ test("iniciativa: todos entram na lista e o mestre define a ordem", async ({ pag
 
   // Monstro novo entra no fim da lista
   await mestre.fill("#cbm_nome", "Ogro");
+  await mestre.uncheck("#cbm_esc"); // visível para os jogadores desde já
   await mestre.getByRole("button", { name: "Adicionar ao mapa" }).click();
   await expect(nomes(jogador)).toHaveText(["Volis E'gurar", "Goblin", "Ogro"]);
 
@@ -131,6 +135,7 @@ test("lista de peças embaixo do mapa: o mestre remove monstros e tira personage
   const jogador = await prepararMesa(mestre, context);
   await mestre.fill("#cbm_nome", "Goblin");
   await mestre.fill("#cbm_qtd", "2");
+  await mestre.uncheck("#cbm_esc"); // visível para os jogadores desde já
   await mestre.getByRole("button", { name: "Adicionar ao mapa" }).click();
 
   const pecas = mestre.locator("#cb_pecas li");
@@ -223,4 +228,87 @@ test("o mestre vê os PV dos jogadores no mapa; o jogador não", async ({ page: 
   await jogador.locator('[data-a="dmg"]').click();
   await expect(pecaNoMestre.locator(".tk-pvtxt")).toHaveText("2/5");
   await expect(pecaNoMestre.locator(".tk-pv")).toHaveClass(/grave/);
+});
+
+/* ----- Monstros escondidos dos jogadores ----- */
+
+test("monstro novo entra escondido: o mestre vê transparente com o olho riscado, o jogador não vê", async ({
+  page: mestre,
+  context,
+}) => {
+  const jogador = await prepararMesa(mestre, context);
+  await expect(mestre.locator("#cbm_esc")).toBeChecked(); // escondido é o padrão
+  await mestre.fill("#cbm_nome", "Ogro");
+  await mestre.getByRole("button", { name: "Adicionar ao mapa" }).click();
+
+  const noMestre = mestre.locator(".tk", { hasText: "Ogro" });
+  await expect(noMestre).toHaveClass(/tk-escondido/);
+  await expect(noMestre.locator(".tk-olho")).toHaveCount(1);
+  await expect(mestre.locator("#cb_lista")).toContainText("1 de 1 escondido(s) dos jogadores");
+  await jogador.waitForTimeout(500);
+  await expect(jogador.locator(".tk", { hasText: "Ogro" })).toHaveCount(0);
+
+  // Escondido não é só na tela: a peça não está no mapa que os jogadores leem
+  const lerBanco = (p) =>
+    mestre.evaluate(async (caminho) => {
+      const { mesaCombate } = await import(new URL("js/tempo-real/combate.js", location.href));
+      const { conectarBanco } = await import(new URL("js/tempo-real/banco.js", location.href));
+      const b = await conectarBanco();
+      const v = (await b.ler(caminho.replace("<codigo>", mesaCombate.codigo))) || {};
+      return Object.values(v).map((t) => t.nome);
+    }, p);
+  expect(await lerBanco("mesas/<codigo>/mapa/tokens")).not.toContain("Ogro");
+  expect(await lerBanco("privado/<codigo>/escondidos")).toContain("Ogro");
+
+  // O mestre ainda move a peça escondida
+  const antes = await noMestre.evaluate((e) => e.style.transform);
+  await arrastar(mestre, noMestre, 100, 0);
+  await expect.poll(() => noMestre.evaluate((e) => e.style.transform)).not.toBe(antes);
+
+  // Mostrar: aparece para o jogador na mesma casa, sem a transparência
+  await mestre.getByRole("button", { name: "Mostrar Ogro" }).click();
+  const noJogador = jogador.locator(".tk", { hasText: "Ogro" });
+  await expect(noJogador).toHaveCount(1);
+  await expect(noMestre).not.toHaveClass(/tk-escondido/);
+  expect(await noJogador.evaluate((e) => e.style.transform)).toBe(await noMestre.evaluate((e) => e.style.transform));
+
+  // E esconder de novo
+  await mestre.getByRole("button", { name: "Esconder Ogro" }).click();
+  await expect(noJogador).toHaveCount(0);
+  await expect(noMestre).toHaveClass(/tk-escondido/);
+});
+
+test("mostrar e esconder vários monstros marcados", async ({ page: mestre, context }) => {
+  const jogador = await prepararMesa(mestre, context);
+  await mestre.fill("#cbm_nome", "Goblin");
+  await mestre.fill("#cbm_qtd", "3");
+  await mestre.getByRole("button", { name: "Adicionar ao mapa" }).click();
+  await expect(mestre.locator(".tk.tk-escondido")).toHaveCount(3);
+
+  // Marca dois e mostra
+  await mestre.getByRole("checkbox", { name: "Marcar Goblin 1" }).check();
+  await mestre.getByRole("checkbox", { name: "Marcar Goblin 3" }).check();
+  await mestre.getByRole("button", { name: "Mostrar marcados" }).click();
+  await expect(jogador.locator(".tk", { hasText: "Goblin" })).toHaveCount(2);
+  await expect(jogador.locator(".tk", { hasText: "Goblin 2" })).toHaveCount(0);
+  await expect(mestre.locator(".tk.tk-escondido")).toHaveCount(1);
+
+  // Marcar todos e esconder
+  await mestre.getByRole("checkbox", { name: "Marcar todos" }).check();
+  await mestre.getByRole("button", { name: "Esconder marcados" }).click();
+  await expect(jogador.locator(".tk", { hasText: "Goblin" })).toHaveCount(0);
+  await expect(mestre.locator(".tk.tk-escondido")).toHaveCount(3);
+});
+
+test("monstro escondido entra na iniciativa só para o mestre", async ({ page: mestre, context }) => {
+  const jogador = await prepararMesa(mestre, context);
+  await mestre.fill("#cbm_nome", "Espreitador");
+  await mestre.getByRole("button", { name: "Adicionar ao mapa" }).click();
+  await mestre.getByRole("button", { name: "Começar combate" }).click();
+  await expect(mestre.locator("#cb_ordem")).toContainText("Espreitador");
+  await expect(jogador.locator("#cb_ordem")).toContainText("Volis E'gurar");
+  await expect(jogador.locator("#cb_ordem")).not.toContainText("Espreitador");
+  // Ao aparecer, entra na ordem dos jogadores também
+  await mestre.getByRole("button", { name: "Mostrar Espreitador" }).click();
+  await expect(jogador.locator("#cb_ordem")).toContainText("Espreitador");
 });

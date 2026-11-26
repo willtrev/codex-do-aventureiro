@@ -8,6 +8,8 @@
                                          o jogador grava só a própria peça (dono = uid dele)
                                          peça de personagem: id pj_<chave da ficha>, ficha = chave
                                          peça de ficha do hub (sem jogador): id h_<mid>, tipo "ficha"
+     privado/<CÓDIGO>/escondidos/<id>    peça de monstro escondida: igual a uma de tokens, mas
+                                         só o mestre lê. Mostrar = mover para mapa/tokens.
      mesas/<CÓDIGO>/mapa/fora/<chave>    true: o mestre tirou essa peça de personagem do mapa
                                          (não volta sozinha quando o jogador reabre o mapa)
      mesas/<CÓDIGO>/mapa/combate         { rodada, vez, ordem: [{ id, valor }] }   só o mestre
@@ -191,7 +193,12 @@ export async function entrarNoCombate(codigo, papel, avisos, personagem) {
     b.ouvirFilhos(`${base}/tokens`, {
       adicionado: (id, v) => ((t[id] = v), avisos.tokens(id)),
       mudado: (id, v) => ((t[id] = v), avisos.tokens(id)),
-      removido: (id) => (delete t[id], avisos.tokens(id)),
+      // Ao esconder, a peça sai daqui depois de entrar nos escondidos: não apaga a escondida
+      removido: (id) => {
+        if (t[id] && t[id].escondido) return;
+        delete t[id];
+        avisos.tokens(id);
+      },
     }),
     b.ouvirFilhos(`mesas/${codigo}/fichas`, {
       adicionado: (k, v) => ((mesaCombate.fichas[k] = comoListas(v.resumo)), garantirPeca(k), avisos.fichas(k)),
@@ -199,13 +206,29 @@ export async function entrarNoCombate(codigo, papel, avisos, personagem) {
       removido: (k) => (delete mesaCombate.fichas[k], avisos.fichas(k)),
     })
   );
-  if (papel === "mestre")
+  if (papel === "mestre") {
+    // Monstros escondidos: entram na lista de peças do mestre marcados com escondido
+    const escondida = (id, v) => {
+      t[id] = { ...v, escondido: true };
+      avisos.tokens(id);
+    };
     parar.push(
       b.ouvir(`privado/${codigo}/monstros`, (v) => {
         mesaCombate.monstros = v || {};
         avisos.monstros();
+      }),
+      b.ouvirFilhos(`privado/${codigo}/escondidos`, {
+        adicionado: escondida,
+        mudado: escondida,
+        // Ao mostrar, a peça entra no mapa antes de sair daqui: só apaga se ainda for a escondida
+        removido: (id) => {
+          if (!t[id] || !t[id].escondido) return;
+          delete t[id];
+          avisos.tokens(id);
+        },
       })
     );
+  }
   // A peça do próprio jogador aparece sozinha ao abrir o mapa
   if (papel === "jogador" && personagem) await garantirPeca(chaveFicha(b.uid, personagem), personagem.nome);
   mesaCombate.status = "ao-vivo";
@@ -235,6 +258,10 @@ async function garantirPeca(chave, nome) {
 }
 
 const caminho = (p) => `mesas/${mesaCombate.codigo}/mapa/${p}`;
+const caminhoEscondido = (id) => `privado/${mesaCombate.codigo}/escondidos/${id}`;
+/** Onde a peça está gravada: escondida (só o mestre lê) ou no mapa de todos. */
+const caminhoPeca = (id) =>
+  mesaCombate.tokens[id] && mesaCombate.tokens[id].escondido ? caminhoEscondido(id) : caminho(`tokens/${id}`);
 export const podeMover = (t) => !!t && (mesaCombate.papel === "mestre" || t.dono === mesaCombate.uid);
 
 export async function moverToken(id, x, y) {
@@ -244,7 +271,7 @@ export async function moverToken(id, x, y) {
   t.x = p.x;
   t.y = p.y;
   const b = await conectarBanco();
-  await b.atualizar(caminho(`tokens/${id}`), { x: p.x, y: p.y });
+  await b.atualizar(caminhoPeca(id), { x: p.x, y: p.y });
 }
 
 /* ----- Só o mestre ----- */
@@ -278,7 +305,8 @@ export async function tirarDoMapa(id) {
   await removerToken(id);
 }
 
-export async function adicionarMonstros({ nome, pv, ca, ini, quantidade = 1 }) {
+/** Monstros novos entram escondidos dos jogadores, a não ser que escondido = false. */
+export async function adicionarMonstros({ nome, pv, ca, ini, quantidade = 1, escondido = true }) {
   const b = await conectarBanco();
   for (let i = 1; i <= quantidade; i++) {
     const id = "m_" + uidGen();
@@ -286,7 +314,7 @@ export async function adicionarMonstros({ nome, pv, ca, ini, quantidade = 1 }) {
     const pos = casaLivre(mesaCombate.tokens, mesaCombate.config);
     mesaCombate.tokens[id] = { ...pos }; // reserva a casa para o próximo da leva
     await b.gravar(`privado/${mesaCombate.codigo}/monstros/${id}`, { pv, pvMax: pv, ca, ini });
-    await b.gravar(caminho(`tokens/${id}`), {
+    await b.gravar(escondido ? caminhoEscondido(id) : caminho(`tokens/${id}`), {
       nome: nomeFinal,
       cor: COR_MONSTRO,
       ...pos,
@@ -302,12 +330,15 @@ export async function mudarPVMonstro(id, delta) {
   const pv = Math.min(m.pvMax, m.pv + delta);
   const b = await conectarBanco();
   await b.atualizar(`privado/${mesaCombate.codigo}/monstros/${id}`, { pv });
-  await b.atualizar(caminho(`tokens/${id}`), { estado: estadoPorPV(pv, m.pvMax) });
+  await b.atualizar(caminhoPeca(id), { estado: estadoPorPV(pv, m.pvMax) });
 }
 export async function removerToken(id) {
   const b = await conectarBanco();
   await b.remover(caminho(`tokens/${id}`));
-  if (id.startsWith("m_")) await b.remover(`privado/${mesaCombate.codigo}/monstros/${id}`);
+  if (id.startsWith("m_")) {
+    await b.remover(caminhoEscondido(id));
+    await b.remover(`privado/${mesaCombate.codigo}/monstros/${id}`);
+  }
   const cb = mesaCombate.combate;
   if (cb && cb.ordem && cb.ordem.some((o) => o.id === id)) {
     const ordem = cb.ordem.filter((o) => o.id !== id);
@@ -322,6 +353,26 @@ async function gravarCombate(cb) {
   await b.gravar(caminho("combate"), cb);
 }
 /** Começa o combate com todas as peças do mapa na lista. */
+/**
+ * Mostra (visivel = true) ou esconde monstros dos jogadores. Mostrar grava a peça no mapa de
+ * todos e depois apaga a escondida; esconder faz o contrário. A posição e o estado continuam.
+ */
+export async function mudarVisibilidade(ids, visivel) {
+  const b = await conectarBanco();
+  for (const id of ids) {
+    const t = mesaCombate.tokens[id];
+    if (!t || t.tipo !== "monstro" || !t.escondido === visivel) continue;
+    const { escondido, ...dados } = t;
+    if (visivel) {
+      await b.gravar(caminho(`tokens/${id}`), dados);
+      await b.remover(caminhoEscondido(id));
+    } else {
+      await b.gravar(caminhoEscondido(id), dados);
+      await b.remover(caminho(`tokens/${id}`));
+    }
+  }
+}
+
 export async function iniciarCombate() {
   const ordem = ordemInicial(mesaCombate.tokens);
   await gravarCombate({ rodada: 1, vez: ordem.length ? ordem[0].id : null, ordem });

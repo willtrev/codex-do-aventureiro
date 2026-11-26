@@ -42,3 +42,13 @@ test("quem ainda não é membro pode ler o próprio registro em membros (para en
     /b\.ler\(`\$\{base\}\/membros\/\$\{b\.uid\}`\)/
   );
 });
+
+test("monstros escondidos ficam numa área que só o mestre lê", () => {
+  const privado = regras.privado.$codigo;
+  assert.match(privado[".read"], /info\/mestre/);
+  assert.match(privado[".write"], /info\/mestre/);
+  // Nenhum filho pode abrir a leitura para os jogadores
+  const filhos = Object.keys(privado).filter((k) => !k.startsWith("."));
+  for (const k of filhos) assert.equal(privado[k][".read"], undefined, `privado/$codigo/${k} não pode ter .read próprio`);
+  assert.match(combateJs, /privado\/\$\{mesaCombate\.codigo\}\/escondidos/);
+});

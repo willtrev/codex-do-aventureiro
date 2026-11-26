@@ -23,7 +23,15 @@ async function concluirEntrada(u, modo) {
   // O uid pode ter mudado: volta para a mesa com a identidade nova
   reconectar(cur(), true).then(atualizarSelo);
 }
-import { colocarMembro, pecaATirar, setPapelPreferido, setPecaATirar, tirarMembro } from "../telas/combate.js";
+import {
+  atualizarListaMonstros,
+  colocarMembro,
+  monstrosMarcados,
+  pecaATirar,
+  setPapelPreferido,
+  setPecaATirar,
+  tirarMembro,
+} from "../telas/combate.js";
 import {
   adicionarMonstros,
   encerrarCombate,
@@ -33,6 +41,7 @@ import {
   ordenarCombate,
   mesaCombate,
   mudarPVMonstro,
+  mudarVisibilidade,
   passarVez,
   reduzirImagem,
   removerToken,
@@ -102,6 +111,17 @@ document.addEventListener("change", (e) => {
   const el = e.target,
     c = cur();
   if (!el.dataset) return;
+  // Mapa de combate: marcar monstros para mostrar ou esconder vários de uma vez
+  if (el.dataset.a === "cbsel" || el.dataset.a === "cbseltodos") {
+    if (el.dataset.a === "cbseltodos") {
+      monstrosMarcados.clear();
+      if (el.checked)
+        Object.entries(mesaCombate.tokens).forEach(([id, t]) => t.tipo === "monstro" && monstrosMarcados.add(id));
+    } else if (el.checked) monstrosMarcados.add(el.dataset.id);
+    else monstrosMarcados.delete(el.dataset.id);
+    atualizarListaMonstros();
+    return;
+  }
   if (el.id === "filtro_equip") {
     setFiltroEquip(el.value);
     filtrarSRD();
@@ -594,8 +614,19 @@ async function aoClicar(e) {
         ca: +v("cbm_ca") || 10,
         ini: 0,
         quantidade: clamp(+v("cbm_qtd") || 1, 1, 20),
+        escondido: document.getElementById("cbm_esc").checked,
       });
       document.getElementById("cbm_nome").value = "";
+      break;
+    }
+    case "cbvis":
+      await mudarVisibilidade([b.dataset.id], b.dataset.v === "1");
+      break;
+    case "cbvissel": {
+      const ids = [...monstrosMarcados];
+      monstrosMarcados.clear();
+      await mudarVisibilidade(ids, b.dataset.v === "1");
+      atualizarListaMonstros();
       break;
     }
     case "cbdano":
