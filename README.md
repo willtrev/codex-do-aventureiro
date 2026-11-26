@@ -180,11 +180,11 @@ Pela mesa online, o botão **Abrir mapa de combate** (mestre, no hub) ou **Mapa*
 - **Peças:**
   - cada personagem da mesa ganha uma peça com a cor do jogador;
   - o mestre vê os PV de cada personagem e monstro numa placa na peça; os jogadores veem só o estado;
-  - em **Fichas da campanha**, o mestre põe e tira do mapa as fichas do hub, e em **Peças no mapa** remove monstros ou tira um jogador da mesa;
+  - em **Fichas da campanha**, o mestre põe e tira do mapa as fichas do hub, e em **Peças no mapa**, embaixo do mapa, tira personagens do mapa ou da mesa;
   - o jogador arrasta só a própria peça (ou usa as setas do teclado com ela selecionada) e o mestre arrasta qualquer uma;
   - durante o arrasto a peça se move só na tela de quem arrasta; a posição vai para o banco ao soltar e os outros veem a peça deslizar até lá.
 - **Monstros e NPCs:**
-  - o mestre adiciona com nome, PV, CA e quantidade no painel ao lado, e aplica dano e cura na lista **Peças no mapa**, embaixo do mapa;
+  - o mestre adiciona com nome, PV, CA e quantidade e aplica dano e cura no painel **Monstros e NPCs**, ao lado do mapa;
   - os PV e a CA ficam em `privado/<CÓDIGO>`, que só o mestre lê, e os jogadores veem só o estado (ferido, muito ferido, caído).
   - monstros novos entram **escondidos dos jogadores** (dá para desmarcar ao adicionar): no mapa do mestre ficam meio transparentes, com um olho riscado, e não aparecem para os jogadores nem na iniciativa;
   - o mestre mostra ou esconde um monstro pelo botão dele, ou vários de uma vez marcando as caixas;

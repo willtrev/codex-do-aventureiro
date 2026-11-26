@@ -138,9 +138,9 @@ test("lista de peças embaixo do mapa: o mestre remove monstros e tira personage
   await mestre.uncheck("#cbm_esc"); // visível para os jogadores desde já
   await mestre.getByRole("button", { name: "Adicionar ao mapa" }).click();
 
-  // Embaixo do mapa: monstros numa lista, personagens na outra
+  // Monstros na lista ao lado; personagens em "Peças no mapa", embaixo do mapa
   const secao = mestre.locator(".cb-pecas-secao");
-  const monstros = secao.locator("#cb_lista li");
+  const monstros = mestre.locator(".cb-lado #cb_lista li");
   const pecas = secao.locator("#cb_pecas li");
   await expect(monstros).toHaveCount(2);
   await expect(pecas).toHaveCount(1);
@@ -149,7 +149,8 @@ test("lista de peças embaixo do mapa: o mestre remove monstros e tira personage
   await expect(jogador.locator(".cb-pecas-secao")).toHaveCount(0); // só o mestre vê a lista
 
   // Monstro: some do mapa dos dois
-  await secao
+  await mestre
+    .locator("#cb_lista")
     .getByRole("button", { name: /Remover Goblin/ })
     .first()
     .click();

@@ -298,7 +298,7 @@ const ROTULO_ESTADO = {
   morrendo: "morrendo",
   morto: "morto",
 };
-/** Personagens no mapa (os monstros ficam na lista de monstros, logo acima). */
+/** Personagens no mapa (os monstros ficam na lista de "Monstros e NPCs", ao lado). */
 function listaPecas() {
   const pecas = Object.entries(mesaCombate.tokens)
     .filter(([, t]) => t && t.nome && t.tipo !== "monstro")
@@ -331,8 +331,8 @@ function listaPecas() {
 }
 
 function painelMonstros() {
-  return `<h2>Adicionar monstros e NPCs</h2>
-    <p class="small muted" style="margin:0">Eles aparecem em "Peças no mapa", embaixo do mapa.</p>
+  return `<h2>Monstros e NPCs</h2>
+    <p class="small muted" style="margin:0">Os jogadores veem só o estado (ileso, ferido, muito ferido, caído). Monstros escondidos (meio transparentes, com o olho riscado) só você vê.</p>
     <div class="fields cb-form">
       <label class="f" for="cbm_nome">Nome<input id="cbm_nome" type="text" placeholder="ex.: Goblin"></label>
       <label class="f" for="cbm_pv">PV<input id="cbm_pv" type="number" min="1" value="6"></label>
@@ -341,7 +341,8 @@ function painelMonstros() {
     </div>
     <label class="small"><input id="cbm_esc" type="checkbox" checked> Entrar escondido dos jogadores</label>
     <div class="row"><button class="btn pri" data-a="cbaddmonstro">Adicionar ao mapa</button><span id="cbm_msg" class="small" style="color:var(--bad)" role="status"></span></div>
-`;
+    <div class="row"><label for="cbm_valor" class="small muted">Valor de dano ou cura</label><input id="cbm_valor" type="number" min="0" value="1" style="width:72px"></div>
+    <div id="cb_lista">${listaMonstros()}</div>`;
 }
 function painelMapa() {
   const { colunas, linhas } = mesaCombate.config;
@@ -395,11 +396,6 @@ export function vCombate() {
       mestre
         ? `<section class="card"><h2>Fichas da campanha</h2><div id="cb_fichas">${carregando ? "" : listaFichasCampanha()}</div></section>
            <section class="card cb-pecas-secao"><h2>Peças no mapa</h2>
-             <h3 class="cb-sub">Monstros e NPCs</h3>
-             <p class="small muted" style="margin:0">Os jogadores veem só o estado (ileso, ferido, muito ferido, caído). Monstros escondidos (meio transparentes, com o olho riscado) só você vê.</p>
-             <div class="row"><label for="cbm_valor" class="small muted">Valor de dano ou cura</label><input id="cbm_valor" type="number" min="0" value="1" style="width:72px"></div>
-             <div id="cb_lista">${carregando ? "" : listaMonstros()}</div>
-             <h3 class="cb-sub">Personagens</h3>
              <div id="cb_pecas">${carregando ? "" : listaPecas()}</div></section>`
         : ""
     }
