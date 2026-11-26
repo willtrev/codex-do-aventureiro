@@ -138,26 +138,29 @@ test("lista de peças embaixo do mapa: o mestre remove monstros e tira personage
   await mestre.uncheck("#cbm_esc"); // visível para os jogadores desde já
   await mestre.getByRole("button", { name: "Adicionar ao mapa" }).click();
 
-  const pecas = mestre.locator("#cb_pecas li");
-  await expect(pecas).toHaveCount(3);
+  // Embaixo do mapa: monstros numa lista, personagens na outra
+  const secao = mestre.locator(".cb-pecas-secao");
+  const monstros = secao.locator("#cb_lista li");
+  const pecas = secao.locator("#cb_pecas li");
+  await expect(monstros).toHaveCount(2);
+  await expect(pecas).toHaveCount(1);
   await expect(pecas.first()).toContainText("Volis E'gurar");
   await expect(pecas.first()).toContainText("Personagem de jogador");
-  await expect(jogador.locator("#cb_pecas")).toHaveCount(0); // só o mestre vê a lista
+  await expect(jogador.locator(".cb-pecas-secao")).toHaveCount(0); // só o mestre vê a lista
 
   // Monstro: some do mapa dos dois
-  await mestre
-    .locator("#cb_pecas")
+  await secao
     .getByRole("button", { name: /Remover Goblin/ })
     .first()
     .click();
-  await expect(pecas).toHaveCount(2);
+  await expect(monstros).toHaveCount(1);
   await expect(jogador.locator(".tk")).toHaveCount(2);
 
   // Personagem: confirma, sai da mesa e o jogador é desconectado
   await mestre.locator("#cb_pecas").getByRole("button", { name: "Tirar Volis E'gurar da mesa" }).click();
   await expect(mestre.locator(".modal")).toContainText("O jogador é desconectado");
   await mestre.locator('.modal [data-a="cbtirarok"]').click();
-  await expect(pecas).toHaveCount(1);
+  await expect(pecas).toHaveCount(0);
   await expect(mestre.locator('.tk[id^="tk_pj_"]')).toHaveCount(0);
   await expect(jogador.locator("#mesaselo")).toContainText("O mestre tirou Volis E'gurar da mesa");
 });
@@ -311,4 +314,23 @@ test("monstro escondido entra na iniciativa só para o mestre", async ({ page: m
   // Ao aparecer, entra na ordem dos jogadores também
   await mestre.getByRole("button", { name: "Mostrar Espreitador" }).click();
   await expect(jogador.locator("#cb_ordem")).toContainText("Espreitador");
+});
+
+test("o mestre vê os PV dos monstros na peça, e a placa muda com dano", async ({ page: mestre, context }) => {
+  const jogador = await prepararMesa(mestre, context);
+  await mestre.fill("#cbm_nome", "Orc");
+  await mestre.fill("#cbm_pv", "10");
+  await mestre.uncheck("#cbm_esc");
+  await mestre.getByRole("button", { name: "Adicionar ao mapa" }).click();
+  const orc = mestre.locator(".tk", { hasText: "Orc" });
+  await expect(orc.locator(".tk-pvtxt")).toHaveText("10/10");
+
+  await mestre.fill("#cbm_valor", "6");
+  await mestre.getByRole("button", { name: "Dano em Orc" }).click();
+  await expect(orc.locator(".tk-pvtxt")).toHaveText("4/10");
+  await expect(orc.locator(".tk-pv")).toHaveClass(/grave/);
+  // O jogador vê o estado, sem números
+  const noJogador = jogador.locator(".tk", { hasText: "Orc" });
+  await expect(noJogador).toHaveClass(/tk-muito/);
+  await expect(noJogador.locator(".tk-placa")).toHaveCount(0);
 });

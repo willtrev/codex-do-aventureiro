@@ -76,6 +76,10 @@ export function pvDoToken(id, t) {
     const g = campanhaDaMesa();
     const m = g && g.membros.find((x) => "h_" + x.mid === id);
     hp = m && resumoAoVivo(m.c).hp;
+  } else if (t.tipo === "monstro") {
+    // Só o mestre tem os PV dos monstros (ficam em privado/<código>/monstros)
+    const m = mesaCombate.monstros[id];
+    hp = m && m.pvMax ? { atual: m.pv, max: m.pvMax } : null;
   }
   return hp ? { atual: +hp.atual || 0, max: +hp.max || 1, temp: +hp.temp || 0 } : null;
 }
@@ -84,7 +88,7 @@ export function estadoDoToken(id, t) {
   if (pv) return estadoPorPV(pv.atual, pv.max);
   return t.tipo === "pj" ? "ileso" : t.estado || "ileso";
 }
-/** Placa de PV na base da peça de personagem, com barra e números (só o mestre vê). */
+/** Placa de PV na base da peça (personagem ou monstro), com barra e números (só o mestre vê). */
 function pvNaPeca(id, t, est) {
   if (mesaCombate.papel !== "mestre") return { placa: "", titulo: "" };
   const pv = pvDoToken(id, t);
@@ -294,14 +298,15 @@ const ROTULO_ESTADO = {
   morrendo: "morrendo",
   morto: "morto",
 };
+/** Personagens no mapa (os monstros ficam na lista de monstros, logo acima). */
 function listaPecas() {
   const pecas = Object.entries(mesaCombate.tokens)
-    .filter(([, t]) => t && t.nome)
+    .filter(([, t]) => t && t.nome && t.tipo !== "monstro")
     .sort(
       ([, a], [, b]) =>
         (a.tipo === "monstro" ? 1 : 0) - (b.tipo === "monstro" ? 1 : 0) || String(a.nome).localeCompare(b.nome)
     );
-  if (!pecas.length) return `<p class="small muted" style="margin:0">Nenhuma peça no mapa.</p>`;
+  if (!pecas.length) return `<p class="small muted" style="margin:0">Nenhum personagem no mapa.</p>`;
   return `<ul class="cb-pecas">${pecas
     .map(([id, t]) => {
       const pj = t.tipo === "pj";
@@ -326,8 +331,8 @@ function listaPecas() {
 }
 
 function painelMonstros() {
-  return `<h2>Monstros e NPCs</h2>
-    <p class="small muted" style="margin:0">Os jogadores veem só o estado (ileso, ferido, muito ferido, caído). Monstros escondidos (meio transparentes, com o olho riscado) só você vê.</p>
+  return `<h2>Adicionar monstros e NPCs</h2>
+    <p class="small muted" style="margin:0">Eles aparecem em "Peças no mapa", embaixo do mapa.</p>
     <div class="fields cb-form">
       <label class="f" for="cbm_nome">Nome<input id="cbm_nome" type="text" placeholder="ex.: Goblin"></label>
       <label class="f" for="cbm_pv">PV<input id="cbm_pv" type="number" min="1" value="6"></label>
@@ -336,8 +341,7 @@ function painelMonstros() {
     </div>
     <label class="small"><input id="cbm_esc" type="checkbox" checked> Entrar escondido dos jogadores</label>
     <div class="row"><button class="btn pri" data-a="cbaddmonstro">Adicionar ao mapa</button><span id="cbm_msg" class="small" style="color:var(--bad)" role="status"></span></div>
-    <div class="row"><label for="cbm_valor" class="small muted">Valor de dano ou cura</label><input id="cbm_valor" type="number" min="0" value="1" style="width:72px"></div>
-    <div id="cb_lista">${listaMonstros()}</div>`;
+`;
 }
 function painelMapa() {
   const { colunas, linhas } = mesaCombate.config;
@@ -390,7 +394,13 @@ export function vCombate() {
     ${
       mestre
         ? `<section class="card"><h2>Fichas da campanha</h2><div id="cb_fichas">${carregando ? "" : listaFichasCampanha()}</div></section>
-           <section class="card"><h2>Peças no mapa</h2><div id="cb_pecas">${carregando ? "" : listaPecas()}</div></section>`
+           <section class="card cb-pecas-secao"><h2>Peças no mapa</h2>
+             <h3 class="cb-sub">Monstros e NPCs</h3>
+             <p class="small muted" style="margin:0">Os jogadores veem só o estado (ileso, ferido, muito ferido, caído). Monstros escondidos (meio transparentes, com o olho riscado) só você vê.</p>
+             <div class="row"><label for="cbm_valor" class="small muted">Valor de dano ou cura</label><input id="cbm_valor" type="number" min="0" value="1" style="width:72px"></div>
+             <div id="cb_lista">${carregando ? "" : listaMonstros()}</div>
+             <h3 class="cb-sub">Personagens</h3>
+             <div id="cb_pecas">${carregando ? "" : listaPecas()}</div></section>`
         : ""
     }
     </div>
@@ -479,6 +489,8 @@ const avisos = {
   monstros: () => {
     const l = $("cb_lista");
     if (l) l.innerHTML = listaMonstros();
+    // PV mudaram: redesenha as peças de monstro (placa de PV e estado)
+    for (const [id, t] of Object.entries(mesaCombate.tokens)) if (t.tipo === "monstro") atualizarToken(id);
   },
   fichas: (chave) => {
     const id = "pj_" + chave;
@@ -504,6 +516,7 @@ export async function montarCombate() {
     if (a) a.innerHTML = mapaSVG();
     atualizarOrdem();
     atualizarPecas();
+    atualizarListaMonstros();
   }
   const area = $("cb_area");
   if (area && !area.dataset.ligado) {

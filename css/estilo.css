@@ -1065,6 +1065,13 @@ tr.na td {
 .cb-monstro.escondido b {
   opacity: 0.7;
 }
+.cb-sub {
+  margin: 8px 0 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
 .cb-sel {
   gap: 6px;
   align-items: center;
