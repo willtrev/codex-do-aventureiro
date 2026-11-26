@@ -324,6 +324,11 @@ export async function adicionarMonstros({ nome, pv, ca, ini, quantidade = 1, esc
     });
   }
 }
+/** "Matar" do menu da peça: PV vão a −10 e a peça fica como morta para todos. */
+export async function matarMonstro(id) {
+  const m = mesaCombate.monstros[id];
+  if (m) await mudarPVMonstro(id, -10 - m.pv);
+}
 export async function mudarPVMonstro(id, delta) {
   const m = mesaCombate.monstros[id];
   if (!m) return;

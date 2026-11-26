@@ -334,3 +334,67 @@ test("o mestre vê os PV dos monstros na peça, e a placa muda com dano", async 
   await expect(noJogador).toHaveClass(/tk-muito/);
   await expect(noJogador.locator(".tk-placa")).toHaveCount(0);
 });
+
+/* ----- Menu da peça (botão direito) ----- */
+
+test("botão direito no monstro: revelar, esconder, matar e remover", async ({ page: mestre, context }) => {
+  const jogador = await prepararMesa(mestre, context);
+  await mestre.fill("#cbm_nome", "Troll");
+  await mestre.getByRole("button", { name: "Adicionar ao mapa" }).click();
+  const troll = mestre.locator(".tk", { hasText: "Troll" });
+  const menu = mestre.getByRole("menu", { name: "Ações de Troll" });
+  const noJogador = jogador.locator(".tk", { hasText: "Troll" });
+
+  // Revelar
+  await troll.click({ button: "right" });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole("menuitem")).toHaveText(["Revelar", "Matar", "Remover"]);
+  await menu.getByRole("menuitem", { name: "Revelar" }).click();
+  await expect(menu).toHaveCount(0);
+  await expect(noJogador).toHaveCount(1);
+
+  // Esconder, e Esc fecha o menu sem fazer nada
+  await troll.click({ button: "right" });
+  await mestre.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+  await troll.click({ button: "right" });
+  await menu.getByRole("menuitem", { name: "Esconder" }).click();
+  await expect(noJogador).toHaveCount(0);
+
+  // Matar: fica morto (com o X) e "Matar" some do menu
+  await troll.click({ button: "right" });
+  await menu.getByRole("menuitem", { name: "Matar" }).click();
+  await expect(troll).toHaveClass(/tk-caido/);
+  await expect(troll.locator(".tk-pvtxt")).toHaveText("-10/6");
+  await expect(mestre.locator("#cb_lista")).toContainText("morto");
+  await troll.click({ button: "right" });
+  await expect(menu.getByRole("menuitem")).toHaveText(["Revelar", "Remover"]);
+
+  // Remover
+  await menu.getByRole("menuitem", { name: "Remover" }).click();
+  await expect(troll).toHaveCount(0);
+});
+
+test("botão direito no personagem e clique fora; o jogador não tem o menu", async ({ page: mestre, context }) => {
+  const jogador = await prepararMesa(mestre, context);
+  const volis = mestre.locator('.tk[id^="tk_pj_"]');
+  const menu = mestre.getByRole("menu");
+  await volis.click({ button: "right" });
+  await expect(menu.getByRole("menuitem")).toHaveText(["Tirar do mapa", "Tirar da mesa"]);
+  // Clique fora fecha
+  await mestre.locator("h2", { hasText: "Iniciativa" }).click();
+  await expect(menu).toHaveCount(0);
+
+  await volis.click({ button: "right" });
+  await menu.getByRole("menuitem", { name: "Tirar do mapa" }).click();
+  await expect(jogador.locator(".tk.meu")).toHaveCount(0);
+
+  // No jogador, o botão direito não abre o menu
+  await mestre
+    .locator("#cb_fichas")
+    .getByRole("button", { name: /Colocar .* no mapa/ })
+    .click();
+  await expect(jogador.locator(".tk.meu")).toHaveCount(1);
+  await jogador.locator(".tk.meu").click({ button: "right" });
+  await expect(jogador.getByRole("menu")).toHaveCount(0);
+});

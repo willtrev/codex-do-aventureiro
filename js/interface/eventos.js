@@ -42,6 +42,8 @@ import {
   mesaCombate,
   mudarPVMonstro,
   mudarVisibilidade,
+  matarMonstro,
+  tirarDoMapa,
   passarVez,
   reduzirImagem,
   removerToken,
@@ -619,6 +621,12 @@ async function aoClicar(e) {
       document.getElementById("cbm_nome").value = "";
       break;
     }
+    case "cbmatar":
+      await matarMonstro(b.dataset.id);
+      break;
+    case "cbtirarmapa":
+      await tirarDoMapa(b.dataset.id);
+      break;
     case "cbvis":
       await mudarVisibilidade([b.dataset.id], b.dataset.v === "1");
       break;

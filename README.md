@@ -187,7 +187,8 @@ Pela mesa online, o botão **Abrir mapa de combate** (mestre, no hub) ou **Mapa*
   - o mestre adiciona com nome, PV, CA e quantidade no painel ao lado, e aplica dano e cura na lista **Peças no mapa**, embaixo do mapa;
   - os PV e a CA ficam em `privado/<CÓDIGO>`, que só o mestre lê, e os jogadores veem só o estado (ferido, muito ferido, caído).
   - monstros novos entram **escondidos dos jogadores** (dá para desmarcar ao adicionar): no mapa do mestre ficam meio transparentes, com um olho riscado, e não aparecem para os jogadores nem na iniciativa;
-  - o mestre mostra ou esconde um monstro pelo botão dele, ou vários de uma vez marcando as caixas; a peça escondida fica em `privado/<CÓDIGO>/escondidos` e só vai para o mapa de todos quando aparece.
+  - o mestre mostra ou esconde um monstro pelo botão dele, ou vários de uma vez marcando as caixas;
+  - com o **botão direito** numa peça, o mestre abre um menu: no monstro, **Revelar**/**Esconder**, **Matar** e **Remover**; no personagem, **Tirar do mapa** e **Tirar da mesa**; a peça escondida fica em `privado/<CÓDIGO>/escondidos` e só vai para o mapa de todos quando aparece.
 - **Iniciativa:**
   - **Começar combate** põe todas as peças do mapa na lista, e peças que entram depois vão para o fim;
   - o mestre define a ordem com ▲ ▼ ou anota o valor que cada um tirou e clica em **Ordenar pelos valores**;

@@ -523,9 +523,11 @@ export async function montarCombate() {
     area.dataset.ligado = "1";
     area.addEventListener("pointerdown", iniciarArrasto);
     area.addEventListener("keydown", teclado);
+    area.addEventListener("contextmenu", abrirMenuPeca);
   }
 }
 export function sairDoCombate() {
+  fecharMenuPeca();
   if (mesaCombate.status !== "fora") pararCombate();
 }
 
@@ -538,6 +540,80 @@ function pontoSVG(e) {
   p.y = e.clientY;
   return p.matrixTransform(svg.getScreenCTM().inverse());
 }
+/* ---------- Menu da peça (botão direito, só o mestre) ---------- */
+
+/** Opções do menu para a peça: [rótulo, ação, extras de data-*, perigosa?]. */
+function opcoesDaPeca(id, t) {
+  if (t.tipo === "monstro") {
+    const morto = estadoDoToken(id, t) === "morto";
+    return [
+      t.escondido ? ["Revelar", "cbvis", { v: 1 }] : ["Esconder", "cbvis", { v: 0 }],
+      ...(morto ? [] : [["Matar", "cbmatar", {}, true]]),
+      ["Remover", "cbremover", {}, true],
+    ];
+  }
+  const naMesa = t.tipo === "pj" && t.ficha && mesaCombate.fichas[t.ficha];
+  return [["Tirar do mapa", "cbtirarmapa", {}], ...(naMesa ? [["Tirar da mesa", "cbtirar", {}, true]] : [])];
+}
+export function fecharMenuPeca() {
+  const m = document.getElementById("cb_menu");
+  if (m) m.remove();
+  document.removeEventListener("pointerdown", foraDoMenu, true);
+  window.removeEventListener("resize", fecharMenuPeca);
+  window.removeEventListener("scroll", fecharMenuPeca, true);
+}
+function foraDoMenu(e) {
+  if (!e.target.closest("#cb_menu")) fecharMenuPeca();
+}
+function abrirMenuPeca(e) {
+  const g = e.target.closest(".tk");
+  if (mesaCombate.papel !== "mestre" || !g) return;
+  const id = g.dataset.id;
+  const t = mesaCombate.tokens[id];
+  if (!t) return;
+  e.preventDefault();
+  fecharMenuPeca();
+  const itens = opcoesDaPeca(id, t)
+    .map(([rotulo, acao, extra, perigo]) => {
+      const dados = Object.entries(extra)
+        .map(([k, v]) => ` data-${k}="${v}"`)
+        .join("");
+      return `<button role="menuitem" class="${perigo ? "perigo" : ""}" data-a="${acao}" data-id="${id}"${dados}>${rotulo}</button>`;
+    })
+    .join("");
+  const menu = document.createElement("div");
+  menu.id = "cb_menu";
+  menu.className = "cb-menu";
+  menu.setAttribute("role", "menu");
+  menu.setAttribute("aria-label", `Ações de ${t.nome}`);
+  menu.innerHTML = `<div class="cb-menu-tit">${esc(t.nome)}</div>${itens}`;
+  document.body.appendChild(menu);
+  // Pelo mouse abre no ponteiro; pelo teclado (tecla de menu), junto da peça. Sempre dentro da tela.
+  const r = g.getBoundingClientRect();
+  const x0 = e.clientX || r.right;
+  const y0 = e.clientY || r.top;
+  const { width: w, height: h } = menu.getBoundingClientRect();
+  menu.style.left = Math.max(4, Math.min(x0, innerWidth - w - 4)) + "px";
+  menu.style.top = Math.max(4, Math.min(y0, innerHeight - h - 4)) + "px";
+  // Fecha ao escolher, ao clicar fora, com Esc, ao rolar a página ou mudar o tamanho da janela
+  menu.addEventListener("click", (ev) => ev.target.closest("button") && setTimeout(fecharMenuPeca));
+  menu.addEventListener("keydown", (ev) => {
+    const botoes = [...menu.querySelectorAll("button")];
+    const i = botoes.indexOf(document.activeElement);
+    if (ev.key === "Escape") {
+      fecharMenuPeca();
+      g.focus();
+    } else if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+      ev.preventDefault();
+      botoes[(i + (ev.key === "ArrowDown" ? 1 : botoes.length - 1)) % botoes.length].focus();
+    }
+  });
+  document.addEventListener("pointerdown", foraDoMenu, true);
+  window.addEventListener("resize", fecharMenuPeca);
+  window.addEventListener("scroll", fecharMenuPeca, true);
+  menu.querySelector("button").focus();
+}
+
 function iniciarArrasto(e) {
   const g = e.target.closest(".tk");
   if (!g) return;
